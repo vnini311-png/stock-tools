@@ -1,0 +1,915 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MACD 持股分析儀表板</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+TC:wght@300;400;500&display=swap');
+
+  :root {
+    --bg: #0d0f12;
+    --bg2: #13161b;
+    --bg3: #1a1e25;
+    --border: #262b34;
+    --border2: #2e3440;
+    --text: #d4d8e0;
+    --text2: #7a8494;
+    --text3: #4a5262;
+    --bull: #ff4d6a;
+    --bear: #00c896;
+    --gold: #f5a623;
+    --blue: #4a9eff;
+    --mono: 'IBM Plex Mono', monospace;
+    --sans: 'IBM Plex Sans TC', sans-serif;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 13px;
+    min-height: 100vh;
+  }
+
+  /* ── HEADER ── */
+  .header {
+    padding: 20px 28px 16px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: baseline;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+  .header h1 {
+    font-family: var(--mono);
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    color: #fff;
+  }
+  .header-meta {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text3);
+    letter-spacing: 0.03em;
+  }
+  #dateLabel {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--blue);
+    margin-left: auto;
+  }
+  .back-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 5px 11px;
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    color: var(--text2);
+    font-family: var(--mono);
+    font-size: 11px;
+    text-decoration: none;
+    transition: all .15s;
+  }
+  .back-btn:hover {
+    border-color: var(--blue);
+    color: var(--blue);
+    background: rgba(74, 158, 255, 0.08);
+  }
+
+  /* ── DROP ZONE ── */
+  #dropZone {
+    margin: 24px 28px;
+    border: 1.5px dashed var(--border2);
+    border-radius: 10px;
+    padding: 28px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    background: var(--bg2);
+  }
+  #dropZone:hover, #dropZone.drag-over {
+    border-color: var(--blue);
+    background: rgba(74,158,255,0.04);
+  }
+  #dropZone .drop-icon { font-size: 28px; margin-bottom: 8px; }
+  #dropZone .drop-title {
+    font-family: var(--mono);
+    font-size: 13px;
+    color: var(--text);
+    margin-bottom: 4px;
+  }
+  #dropZone .drop-sub { font-size: 11px; color: var(--text3); }
+  #dropZone input { display: none; }
+
+  /* ── SUMMARY CARDS ── */
+  #dashboard { display: none; padding: 0 28px 28px; }
+
+  .summary {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+    margin-bottom: 18px;
+  }
+  .scard {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 16px;
+  }
+  .scard .sl { font-family: var(--mono); font-size: 10px; color: var(--text3); letter-spacing: 0.08em; margin-bottom: 4px; }
+  .scard .sv { font-family: var(--mono); font-size: 24px; font-weight: 600; }
+  .sv.bull { color: var(--bull); }
+  .sv.bear { color: var(--bear); }
+  .sv.gold { color: var(--gold); }
+  .sv.plain { color: var(--text); }
+
+  /* ── CONTROLS ── */
+  .controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 12px;
+    align-items: center;
+  }
+  .controls select, .controls input {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 11px;
+    padding: 6px 10px;
+    border-radius: 6px;
+    outline: none;
+    cursor: pointer;
+    transition: border-color 0.15s;
+  }
+  .controls select:hover, .controls input:focus {
+    border-color: var(--blue);
+  }
+  .controls input { width: 130px; }
+  .count-label {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--text3);
+    margin-left: auto;
+    letter-spacing: 0.05em;
+  }
+
+  /* ── TABLE ── */
+  .tbl-wrap {
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+    overflow-y: auto;
+    max-height: 520px;
+  }
+  table { width: 100%; border-collapse: collapse; }
+  thead th {
+    background: var(--bg3);
+    font-family: var(--mono);
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.07em;
+    color: var(--text3);
+    padding: 10px 12px;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    cursor: pointer;
+    white-space: nowrap;
+    user-select: none;
+  }
+  thead th:hover { color: var(--text); }
+  thead th.sort-asc::after { content: ' ↑'; color: var(--blue); }
+  thead th.sort-desc::after { content: ' ↓'; color: var(--blue); }
+
+  tbody tr {
+    border-bottom: 1px solid var(--border);
+    cursor: pointer;
+    transition: background 0.1s;
+  }
+  tbody tr:hover { background: var(--bg2); }
+  tbody tr:last-child { border-bottom: none; }
+  tbody td {
+    padding: 8px 12px;
+    font-family: var(--mono);
+    font-size: 12px;
+    white-space: nowrap;
+  }
+
+  .bull { color: var(--bull); }
+  .bear { color: var(--bear); }
+  .muted { color: var(--text2); }
+
+  .badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-family: var(--mono);
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.04em;
+  }
+  .badge-gold { background: rgba(245,166,35,0.15); color: var(--gold); border: 1px solid rgba(245,166,35,0.3); }
+  .badge-dead { background: rgba(0,200,150,0.1); color: var(--bear); border: 1px solid rgba(0,200,150,0.25); }
+  .badge-up { background: rgba(255,77,106,0.1); color: var(--bull); border: 1px solid rgba(255,77,106,0.25); }
+  .badge-dn { background: rgba(0,200,150,0.08); color: #2ecc9a; border: 1px solid rgba(0,200,150,0.2); }
+  .badge-neu { background: var(--bg3); color: var(--text3); border: 1px solid var(--border); }
+  .badge-new { background: rgba(74,158,255,0.12); color: var(--blue); border: 1px solid rgba(74,158,255,0.25); margin-left: 5px; }
+
+  .code-cell { color: #fff; font-weight: 600; }
+
+  /* ── MODAL ── */
+  .modal-bg {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.75);
+    z-index: 100;
+    display: flex; align-items: center; justify-content: center;
+    backdrop-filter: blur(3px);
+  }
+  .modal {
+    background: var(--bg2);
+    border: 1px solid var(--border2);
+    border-radius: 14px;
+    padding: 24px;
+    width: min(720px, 96vw);
+    max-height: 88vh;
+    overflow-y: auto;
+  }
+  .modal-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: 16px;
+  }
+  .modal-title {
+    font-family: var(--mono);
+    font-size: 18px;
+    font-weight: 600;
+    color: #fff;
+  }
+  .modal-sub { font-size: 11px; color: var(--text3); margin-top: 3px; font-family: var(--mono); }
+  .close-btn {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    color: var(--text2);
+    font-family: var(--mono);
+    font-size: 11px;
+    padding: 5px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.15s;
+    flex-shrink: 0;
+  }
+  .close-btn:hover { border-color: var(--bear); color: var(--bear); }
+
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    margin-bottom: 18px;
+  }
+  .stat-box {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 12px;
+  }
+  .stat-box .sl { font-family: var(--mono); font-size: 9px; color: var(--text3); letter-spacing: 0.08em; margin-bottom: 3px; }
+  .stat-box .sv { font-family: var(--mono); font-size: 14px; font-weight: 600; }
+
+  .chart-label { font-family: var(--mono); font-size: 10px; color: var(--text3); letter-spacing: 0.06em; margin: 14px 0 6px; }
+  .chart-wrap { position: relative; height: 130px; }
+  .chart-wrap2 { position: relative; height: 90px; }
+
+  /* ── LOADING ── */
+  #loading {
+    display: none;
+    margin: 24px 28px;
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--blue);
+    letter-spacing: 0.05em;
+  }
+  .blink { animation: blink 1s step-end infinite; }
+  @keyframes blink { 50% { opacity: 0; } }
+
+  /* ── SCROLLBAR ── */
+  ::-webkit-scrollbar { width: 5px; height: 5px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+
+  /* ── AI SECTION ── */
+  .ai-section-title {
+    font-family: var(--mono);
+    font-weight: 600;
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    color: var(--gold);
+    display: block;
+    margin: 18px 0 8px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid var(--border);
+    text-transform: uppercase;
+  }
+  .ai-section-title:first-child { margin-top: 0; }
+  .ai-stock-tag {
+    display: inline-block;
+    font-family: var(--mono);
+    font-size: 10px;
+    font-weight: 600;
+    background: rgba(74,158,255,0.12);
+    color: var(--blue);
+    border: 1px solid rgba(74,158,255,0.3);
+    border-radius: 4px;
+    padding: 1px 6px;
+    margin: 0 2px;
+    letter-spacing: 0.03em;
+    vertical-align: middle;
+  }
+  #aiOutput {
+    font-family: var(--sans);
+    font-size: 13.5px;
+    line-height: 2;
+    color: var(--text);
+  }
+  #aiOutput br + br { display: block; content: ''; margin-top: 4px; }
+  #aiApiKey:focus { border-color: var(--blue) !important; }
+  #saveKeyBtn:hover, #rerunBtn:hover { border-color: var(--blue) !important; color: var(--text) !important; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <a href="../index.html" class="back-btn" title="返回工具列">← 工具列</a>
+  <h1>◈ MACD 持股分析儀表板</h1>
+  <span class="header-meta">EMA 12 / 26 / 9</span>
+  <span id="dateLabel">— 尚未載入資料 —</span>
+</div>
+
+<div id="dropZone">
+  <div class="drop-icon">📂</div>
+  <div class="drop-title">拖曳或點擊上傳 Excel 檔案</div>
+  <div class="drop-sub">支援 .xlsx 格式 ｜ 每個工作表為一檔股票（跳過第一張摘要頁）</div>
+  <input type="file" id="fileInput" accept=".xlsx,.xls">
+</div>
+
+<div id="loading">⟳ 讀取中<span class="blink">_</span></div>
+
+<div id="dashboard">
+  <div class="summary" id="summaryCards"></div>
+  <div class="controls">
+    <select id="filterTrend"><option value="">全部趨勢</option><option value="多頭">多頭</option><option value="空頭">空頭</option></select>
+    <select id="filterPos"><option value="">全部軸位</option><option value="零軸上">零軸上</option><option value="零軸下">零軸下</option></select>
+    <select id="filterSig">
+      <option value="">全部訊號</option>
+      <option value="golden">黃金交叉</option>
+      <option value="dead">死亡交叉</option>
+      <option value="hist_up">柱狀擴大</option>
+      <option value="hist_dn">柱狀縮小</option>
+    </select>
+    <input type="text" id="filterSearch" placeholder="搜尋代號...">
+    <span class="count-label" id="countLabel"></span>
+  </div>
+  <div class="tbl-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th data-col="code">代號</th>
+          <th data-col="close">收盤</th>
+          <th data-col="macd">MACD</th>
+          <th data-col="signal">Signal</th>
+          <th data-col="hist">Histogram</th>
+          <th>柱方向</th>
+          <th data-col="trend">趨勢</th>
+          <th data-col="position">軸位</th>
+          <th>訊號</th>
+          <th data-col="ma20">MA20</th>
+          <th data-col="ma60">MA60</th>
+        </tr>
+      </thead>
+      <tbody id="tbody"></tbody>
+    </table>
+  </div>
+</div>
+
+<div id="modalContainer"></div>
+
+<!-- ── AI 分析區塊 ── -->
+<div id="aiSection" style="display:none; margin: 0 28px 28px;">
+  <div style="border: 1px solid var(--border); border-radius: 10px; overflow: hidden;">
+    <div style="background:var(--bg3); border-bottom:1px solid var(--border); padding:12px 16px; display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+      <span style="font-family:var(--mono); font-size:11px; font-weight:600; color:#fff; letter-spacing:.05em;">◆ AI 快速分析</span>
+      <span style="font-family:var(--mono); font-size:10px; color:var(--text3); background:var(--bg); padding:2px 8px; border-radius:4px; border:1px solid var(--border);">claude-haiku-4-5</span>
+      <div style="margin-left:auto; display:flex; align-items:center; gap:8px;" id="aiKeyRow">
+        <input type="password" id="aiApiKey" placeholder="sk-ant-api-key..." style="font-family:var(--mono); font-size:11px; background:var(--bg2); border:1px solid var(--border); color:var(--text); padding:5px 10px; border-radius:6px; outline:none; width:340px; letter-spacing:0.5px;">
+        <button id="saveKeyBtn" style="font-family:var(--mono); font-size:11px; background:var(--bg2); border:1px solid var(--border); color:var(--text2); padding:5px 12px; border-radius:6px; cursor:pointer; white-space:nowrap;">儲存 &amp; 分析</button>
+      </div>
+      <button id="rerunBtn" style="font-family:var(--mono); font-size:11px; background:var(--bg2); border:1px solid var(--border); color:var(--text2); padding:5px 12px; border-radius:6px; cursor:pointer;">↺ 重新分析</button>
+    </div>
+    <div style="padding:18px 20px; background:var(--bg2); min-height:80px;">
+      <div id="aiOutput" style="font-family:var(--sans); font-size:13px; line-height:1.85; color:var(--text3);">載入資料後自動分析</div>
+    </div>
+    <div style="background:var(--bg3); border-top:1px solid var(--border); padding:6px 16px;">
+      <span id="aiFooter" style="font-family:var(--mono); font-size:10px; color:var(--text3);">—</span>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── EMA & MACD ──────────────────────────────────────────
+function ema(arr, span) {
+  const k = 2 / (span + 1);
+  const result = [];
+  let prev = arr[0];
+  result.push(prev);
+  for (let i = 1; i < arr.length; i++) {
+    prev = arr[i] * k + prev * (1 - k);
+    result.push(prev);
+  }
+  return result;
+}
+
+function computeMACD(closes) {
+  const e12 = ema(closes, 12);
+  const e26 = ema(closes, 26);
+  const macd = e12.map((v, i) => v - e26[i]);
+  const signal = ema(macd, 9);
+  const hist = macd.map((v, i) => v - signal[i]);
+  return { macd, signal, hist };
+}
+
+function r(v, d = 4) { return Math.round(v * 10 ** d) / 10 ** d; }
+
+// ── PARSE EXCEL ─────────────────────────────────────────
+function parseExcel(buffer) {
+  const wb = XLSX.read(buffer, { type: 'array', cellDates: true });
+  const results = [];
+
+  // skip first sheet (summary)
+  for (let si = 1; si < wb.SheetNames.length; si++) {
+    const sheetName = wb.SheetNames[si];
+    // extract code = first token before space
+    const code = sheetName.split(' ')[0].trim();
+    const ws = wb.Sheets[sheetName];
+    const rows = XLSX.utils.sheet_to_json(ws, { raw: false, dateNF: 'yyyy-mm-dd' });
+    if (!rows.length) continue;
+
+    // sort by date
+    rows.sort((a, b) => new Date(a['日期']) - new Date(b['日期']));
+
+    const closes = rows.map(r => parseFloat(r['收盤']));
+    const dates  = rows.map(r => String(r['日期']).slice(0, 10));
+    const volumes = rows.map(r => parseInt(r['成交量']) || 0);
+
+    const lastMA20 = parseFloat(rows[rows.length - 1]['MA20']) || 0;
+    const lastMA60 = parseFloat(rows[rows.length - 1]['MA60']) || 0;
+
+    if (closes.length < 30) continue;
+
+    const { macd, signal, hist } = computeMACD(closes);
+    const n = closes.length;
+
+    const macdVal   = macd[n - 1];
+    const sigVal    = signal[n - 1];
+    const histVal   = hist[n - 1];
+    const histPrev  = hist[n - 2];
+    const macdPrev  = macd[n - 2];
+    const sigPrev   = signal[n - 2];
+
+    const golden = macdPrev <= sigPrev && macdVal > sigVal;
+    const dead   = macdPrev >= sigPrev && macdVal < sigVal;
+
+    const TAIL = 60;
+    const tail = i => Math.max(0, n - TAIL + i);
+
+    results.push({
+      code,
+      close:    r(closes[n - 1], 2),
+      ma20:     r(lastMA20, 2),
+      ma60:     r(lastMA60, 2),
+      macd:     r(macdVal),
+      signal:   r(sigVal),
+      hist:     r(histVal),
+      hist_prev: r(histPrev),
+      golden,
+      dead,
+      trend:    macdVal > sigVal ? '多頭' : '空頭',
+      hist_dir: Math.abs(histVal) > Math.abs(histPrev) ? '擴大' : '縮小',
+      position: macdVal > 0 ? '零軸上' : '零軸下',
+      volume:   volumes[n - 1],
+      date:     dates[n - 1],
+      // series
+      macd_series:   macd.slice(-TAIL).map(v => r(v)),
+      signal_series: signal.slice(-TAIL).map(v => r(v)),
+      hist_series:   hist.slice(-TAIL).map(v => r(v)),
+      close_series:  closes.slice(-TAIL).map(v => r(v, 2)),
+      dates_series:  dates.slice(-TAIL).map(d => d.slice(5)), // MM-DD
+    });
+  }
+  return results;
+}
+
+// ── STATE ────────────────────────────────────────────────
+let ALL_DATA = [];
+let filteredData = [];
+let sortCol = 'code', sortDir = 1;
+let activeCharts = [];
+
+// ── RENDER SUMMARY ───────────────────────────────────────
+function renderSummary(data) {
+  const bulls  = data.filter(d => d.trend === '多頭').length;
+  const bears  = data.filter(d => d.trend === '空頭').length;
+  const golds  = data.filter(d => d.golden).length;
+  const deads  = data.filter(d => d.dead).length;
+  document.getElementById('summaryCards').innerHTML = `
+    <div class="scard"><div class="sl">多頭</div><div class="sv bull">${bulls}</div></div>
+    <div class="scard"><div class="sl">空頭</div><div class="sv bear">${bears}</div></div>
+    <div class="scard"><div class="sl">黃金交叉</div><div class="sv gold">${golds}</div></div>
+    <div class="scard"><div class="sl">死亡交叉</div><div class="sv plain">${deads}</div></div>`;
+}
+
+// ── RENDER TABLE ─────────────────────────────────────────
+function sigBadge(d) {
+  if (d.golden) return '<span class="badge badge-gold">黃金交叉</span>';
+  if (d.dead)   return '<span class="badge badge-dead">死亡交叉</span>';
+  return '';
+}
+
+function histBadge(d) {
+  const cls = d.hist_dir === '擴大'
+    ? (d.hist >= 0 ? 'badge-up' : 'badge-dn')
+    : 'badge-neu';
+  return `<span class="badge ${cls}">${d.hist_dir}</span>`;
+}
+
+function renderTable(data) {
+  renderSummary(data);
+  document.getElementById('countLabel').textContent = `顯示 ${data.length} / ${ALL_DATA.length} 檔`;
+
+  const tb = document.getElementById('tbody');
+  tb.innerHTML = data.map(d => `
+    <tr onclick="openModal('${d.code}')">
+      <td class="code-cell">${d.code}</td>
+      <td>${d.close.toFixed(2)}</td>
+      <td class="${d.macd >= 0 ? 'bull' : 'bear'}">${d.macd.toFixed(4)}</td>
+      <td class="${d.signal >= 0 ? 'bull' : 'bear'}">${d.signal.toFixed(4)}</td>
+      <td class="${d.hist >= 0 ? 'bull' : 'bear'}">${d.hist.toFixed(4)}</td>
+      <td>${histBadge(d)}</td>
+      <td class="${d.trend === '多頭' ? 'bull' : 'bear'}">${d.trend}</td>
+      <td class="${d.position === '零軸上' ? 'bull' : 'muted'}">${d.position}</td>
+      <td>${sigBadge(d)}</td>
+      <td class="muted">${d.ma20.toFixed(2)}</td>
+      <td class="muted">${d.ma60.toFixed(2)}</td>
+    </tr>`).join('');
+}
+
+// ── FILTER + SORT ────────────────────────────────────────
+function applyFilters() {
+  const trend = document.getElementById('filterTrend').value;
+  const pos   = document.getElementById('filterPos').value;
+  const sig   = document.getElementById('filterSig').value;
+  const q     = document.getElementById('filterSearch').value.trim().toUpperCase();
+
+  filteredData = ALL_DATA.filter(d => {
+    if (trend && d.trend !== trend) return false;
+    if (pos && d.position !== pos) return false;
+    if (sig === 'golden' && !d.golden) return false;
+    if (sig === 'dead'   && !d.dead)   return false;
+    if (sig === 'hist_up' && d.hist_dir !== '擴大') return false;
+    if (sig === 'hist_dn' && d.hist_dir !== '縮小') return false;
+    if (q && !d.code.toUpperCase().includes(q)) return false;
+    return true;
+  });
+  sortAndRender();
+}
+
+function sortAndRender() {
+  filteredData.sort((a, b) => {
+    const av = a[sortCol], bv = b[sortCol];
+    if (typeof av === 'string') return sortDir * av.localeCompare(bv);
+    return sortDir * (av - bv);
+  });
+  renderTable(filteredData);
+  // update sort indicators
+  document.querySelectorAll('thead th').forEach(th => {
+    th.classList.remove('sort-asc', 'sort-desc');
+    if (th.dataset.col === sortCol) {
+      th.classList.add(sortDir === 1 ? 'sort-asc' : 'sort-desc');
+    }
+  });
+}
+
+document.querySelectorAll('thead th[data-col]').forEach(th => {
+  th.addEventListener('click', () => {
+    const col = th.dataset.col;
+    if (sortCol === col) sortDir *= -1;
+    else { sortCol = col; sortDir = 1; }
+    sortAndRender();
+  });
+});
+
+['filterTrend', 'filterPos', 'filterSig', 'filterSearch'].forEach(id => {
+  const el = document.getElementById(id);
+  el.addEventListener('change', applyFilters);
+  el.addEventListener('input', applyFilters);
+});
+
+// ── MODAL ────────────────────────────────────────────────
+function openModal(code) {
+  const d = ALL_DATA.find(x => x.code === code);
+  if (!d) return;
+
+  document.getElementById('modalContainer').innerHTML = `
+    <div class="modal-bg" id="modalBg">
+      <div class="modal">
+        <div class="modal-header">
+          <div>
+            <div class="modal-title">${d.code}</div>
+            <div class="modal-sub">
+              ${d.date} ｜ 收盤 ${d.close.toFixed(2)} ｜
+              <span class="${d.trend === '多頭' ? 'bull' : 'bear'}">${d.trend}</span> ｜ ${d.position}
+              ${d.golden ? ' ｜ <span style="color:var(--gold)">黃金交叉</span>' : ''}
+              ${d.dead   ? ' ｜ <span style="color:var(--bear)">死亡交叉</span>' : ''}
+            </div>
+          </div>
+          <button class="close-btn" onclick="closeModal()">✕ 關閉</button>
+        </div>
+        <div class="stats-grid">
+          <div class="stat-box"><div class="sl">MACD</div><div class="sv ${d.macd >= 0 ? 'bull' : 'bear'}">${d.macd.toFixed(4)}</div></div>
+          <div class="stat-box"><div class="sl">SIGNAL</div><div class="sv ${d.signal >= 0 ? 'bull' : 'bear'}">${d.signal.toFixed(4)}</div></div>
+          <div class="stat-box"><div class="sl">HISTOGRAM</div><div class="sv ${d.hist >= 0 ? 'bull' : 'bear'}">${d.hist.toFixed(4)} <span style="font-size:10px;color:var(--text3)">${d.hist_dir}</span></div></div>
+          <div class="stat-box"><div class="sl">MA20</div><div class="sv plain">${d.ma20.toFixed(2)}</div></div>
+          <div class="stat-box"><div class="sl">MA60</div><div class="sv plain">${d.ma60.toFixed(2)}</div></div>
+          <div class="stat-box"><div class="sl">成交量</div><div class="sv plain">${(d.volume / 1000).toFixed(0)}K</div></div>
+        </div>
+        <div class="chart-label">▸ 收盤走勢（近60日）</div>
+        <div class="chart-wrap"><canvas id="cClose"></canvas></div>
+        <div class="chart-label">▸ MACD / Signal</div>
+        <div class="chart-wrap"><canvas id="cMacd"></canvas></div>
+        <div class="chart-label">▸ Histogram</div>
+        <div class="chart-wrap2"><canvas id="cHist"></canvas></div>
+      </div>
+    </div>`;
+
+  document.getElementById('modalBg').addEventListener('click', e => {
+    if (e.target.id === 'modalBg') closeModal();
+  });
+
+  activeCharts.forEach(c => c.destroy());
+  activeCharts = [];
+
+  setTimeout(() => {
+    const gridColor = 'rgba(255,255,255,0.05)';
+    const tickColor = '#4a5262';
+    const base = {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { ticks: { maxTicksLimit: 10, color: tickColor, font: { size: 10, family: 'IBM Plex Mono' } }, grid: { color: gridColor } },
+        y: { ticks: { color: tickColor, font: { size: 10, family: 'IBM Plex Mono' } }, grid: { color: gridColor } }
+      }
+    };
+
+    activeCharts.push(new Chart(document.getElementById('cClose'), {
+      type: 'line',
+      data: {
+        labels: d.dates_series,
+        datasets: [{ data: d.close_series, borderColor: '#4a9eff', borderWidth: 1.5, pointRadius: 0, fill: false, tension: 0.3 }]
+      },
+      options: { ...base }
+    }));
+
+    activeCharts.push(new Chart(document.getElementById('cMacd'), {
+      type: 'line',
+      data: {
+        labels: d.dates_series,
+        datasets: [
+          { label: 'MACD', data: d.macd_series, borderColor: '#00c896', borderWidth: 1.5, pointRadius: 0, fill: false },
+          { label: 'Signal', data: d.signal_series, borderColor: '#ff4d6a', borderWidth: 1.5, pointRadius: 0, fill: false, borderDash: [4, 3] }
+        ]
+      },
+      options: {
+        ...base,
+        plugins: {
+          legend: {
+            display: true,
+            labels: { color: '#7a8494', boxWidth: 10, font: { size: 10, family: 'IBM Plex Mono' } }
+          }
+        }
+      }
+    }));
+
+    activeCharts.push(new Chart(document.getElementById('cHist'), {
+      type: 'bar',
+      data: {
+        labels: d.dates_series,
+        datasets: [{
+          data: d.hist_series,
+          backgroundColor: d.hist_series.map(v => v >= 0 ? 'rgba(0,200,150,0.65)' : 'rgba(255,77,106,0.65)'),
+          borderRadius: 1
+        }]
+      },
+      options: { ...base }
+    }));
+  }, 40);
+}
+
+function closeModal() {
+  activeCharts.forEach(c => c.destroy());
+  activeCharts = [];
+  document.getElementById('modalContainer').innerHTML = '';
+}
+
+// ── FILE HANDLING ────────────────────────────────────────
+function processFile(file) {
+  if (!file) return;
+  document.getElementById('loading').style.display = 'block';
+  document.getElementById('dashboard').style.display = 'none';
+
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      ALL_DATA = parseExcel(new Uint8Array(e.target.result));
+      filteredData = ALL_DATA.slice();
+
+      const latestDate = ALL_DATA.reduce((acc, d) => d.date > acc ? d.date : acc, '');
+      document.getElementById('dateLabel').textContent = `最新資料：${latestDate} ｜ ${ALL_DATA.length} 檔`;
+
+      sortAndRender();
+      document.getElementById('loading').style.display = 'none';
+      document.getElementById('dashboard').style.display = 'block';
+      document.getElementById('dropZone').style.display = 'none';
+      document.getElementById('aiSection').style.display = 'block';
+      runAIAnalysis();
+    } catch (err) {
+      alert('讀取失敗：' + err.message);
+      document.getElementById('loading').style.display = 'none';
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+// drag-and-drop
+const dz = document.getElementById('dropZone');
+dz.addEventListener('click', () => document.getElementById('fileInput').click());
+dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('drag-over'); });
+dz.addEventListener('dragleave', () => dz.classList.remove('drag-over'));
+dz.addEventListener('drop', e => {
+  e.preventDefault();
+  dz.classList.remove('drag-over');
+  processFile(e.dataTransfer.files[0]);
+});
+document.getElementById('fileInput').addEventListener('change', e => processFile(e.target.files[0]));
+
+// allow reloading new file via header click
+document.getElementById('dateLabel').addEventListener('click', () => {
+  document.getElementById('dropZone').style.display = 'block';
+  document.getElementById('dashboard').style.display = 'none';
+  document.getElementById('fileInput').value = '';
+});
+document.getElementById('dateLabel').style.cursor = 'pointer';
+document.getElementById('dateLabel').title = '點擊載入新檔案';
+
+// ── AI ANALYSIS ──────────────────────────────────────────
+// 鎖死持股名稱與代號對照表（避免 AI 寫錯）
+const STOCK_NAMES = {
+  "0056":"元大高股息","00891":"中信關鍵半導體","1795":"美時",
+  "2308":"台達電","2330":"台積電","2345":"智邦","2357":"華碩",
+  "3036":"金像電","2379":"瑞昱","2382":"廣達","4979":"元大金",
+  "3006":"晶豪科","3017":"奇鋐","6257":"文曄","3044":"健鼎",
+  "3799":"智易","6495":"台灣精銳","5269":"祥碩","6214":"精誠",
+  "3596":"矽格","6285":"啟碁","6442":"光聖","6805":"富世達",
+  "00947":"大華美國MAG7+","3363":"上詮","5274":"昇達科",
+  "3587":"閎康","3491":"家登","5904":"華星光","8155":"聖暉",
+  "5536":"寶雅","6643":"M31","3680":"博智"
+};
+
+function getStockLabel(code) {
+  const name = STOCK_NAMES[code] || '';
+  return name ? `${name}(${code})` : code;
+}
+
+let _savedKey = '';
+
+async function runAIAnalysis() {
+  const inputVal = document.getElementById('aiApiKey').value.trim();
+  const key = inputVal || _savedKey;
+  const out = document.getElementById('aiOutput');
+
+  if (!key) {
+    out.style.color = 'var(--bear)';
+    out.textContent = '⚠ 請先輸入 Anthropic API Key';
+    document.getElementById('aiKeyRow').style.display = 'flex';
+    return;
+  }
+  if (!ALL_DATA.length) {
+    out.style.color = 'var(--bear)';
+    out.textContent = '⚠ 請先載入 Excel 資料';
+    return;
+  }
+
+  out.style.color = 'var(--blue)';
+  out.innerHTML = '⟳ AI 分析中<span class="blink">_</span>';
+
+  const bull     = ALL_DATA.filter(d => d.trend === '多頭');
+  const bear     = ALL_DATA.filter(d => d.trend === '空頭');
+  const growing  = ALL_DATA.filter(d => d.hist_dir === '擴大' && d.trend === '多頭');
+  const weakening= ALL_DATA.filter(d => d.hist_dir === '縮小' && d.trend === '多頭');
+  const bearExp  = ALL_DATA.filter(d => d.hist_dir === '擴大' && d.trend === '空頭');
+  const golden   = ALL_DATA.filter(d => d.golden);
+  const dead     = ALL_DATA.filter(d => d.dead);
+
+  const fmt = arr => arr.map(d =>
+    `${getStockLabel(d.code)} MACD:${d.macd.toFixed(2)} 柱:${d.hist.toFixed(2)}`
+  ).join('、');
+
+  const dateStr = document.getElementById('dateLabel').textContent.match(/\d{4}-\d{2}-\d{2}/)?.[0] || '';
+
+  const prompt = `你是台股技術分析師，以下是持股的 MACD 資料（${dateStr}），請用繁體中文分析。
+
+持股共 ${ALL_DATA.length} 檔。
+多頭（MACD>Signal）${bull.length}檔：${fmt(bull)}
+空頭（MACD<Signal）${bear.length}檔：${fmt(bear)}
+多頭且柱狀擴大：${growing.map(d=>getStockLabel(d.code)).join('、')}
+多頭但柱狀縮小：${weakening.map(d=>getStockLabel(d.code)).join('、')}
+空頭且柱狀擴大：${bearExp.map(d=>getStockLabel(d.code)).join('、')}
+黃金交叉：${golden.map(d=>getStockLabel(d.code)).join('、') || '無'}
+死亡交叉：${dead.map(d=>getStockLabel(d.code)).join('、') || '無'}
+
+注意：每次提到個股，必須使用上方提供的「名稱(代號)」格式，不可自行更改或猜測名稱與代號的對應。
+
+請輸出以下格式，字數 500 字以內：
+【市場概況】整體多空格局 2-3 句
+【值得關注的個股】分三小段：
+  ・動能加速（可續抱）：列 2-4 檔，說明 MACD 數值
+  ・留意回檔（柱狀收斂）：列 2-4 檔，說明警訊
+  ・建議減碼（空頭惡化）：列 2-4 檔，說明原因`;
+
+  try {
+    const r = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': key,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
+      body: JSON.stringify({
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: 1000,
+        messages: [{ role: 'user', content: prompt }]
+      })
+    });
+    if (!r.ok) {
+      const e = await r.json().catch(() => ({}));
+      throw new Error(JSON.stringify(e) || `HTTP ${r.status}`);
+    }
+    const data = await r.json();
+    const txt = data.content?.find(b => b.type === 'text')?.text || '分析失敗，請重試。';
+
+    out.style.color = 'var(--text)';
+    // 把「名稱(代號)」的括號代號部分加上藍色 tag，例如 台達電(2308) → 台達電<span class="ai-stock-tag">2308</span>
+    const formatted = txt
+      .replace(/【(.+?)】/g, '<span class="ai-section-title">【$1】</span>')
+      .replace(/（([^）]{2,8})）/g, '<span class="ai-stock-tag">$1</span>')
+      .replace(/\(([^)]{2,8})\)/g, '<span class="ai-stock-tag">$1</span>')
+      .replace(/・/g, '<br><br>・')
+      .replace(/\n\n/g, '<br><br>')
+      .replace(/\n/g, '<br>');
+    out.innerHTML = formatted;
+
+    const ts = new Date().toLocaleTimeString('zh-TW');
+    document.getElementById('aiFooter').textContent = `生成完成 · ${ts} · claude-sonnet-4-6`;
+  } catch(e) {
+    out.style.color = 'var(--bear)';
+    out.textContent = `分析失敗：${e.message}`;
+  }
+}
+
+document.getElementById('aiApiKey').addEventListener('keydown', e => {
+  if (e.key === 'Enter') {
+    _savedKey = e.target.value.trim();
+    runAIAnalysis();
+  }
+});
+document.getElementById('saveKeyBtn').addEventListener('click', () => {
+  const v = document.getElementById('aiApiKey').value.trim();
+  if (v) { _savedKey = v; document.getElementById('aiApiKey').value = v; }
+  runAIAnalysis();
+});
+document.getElementById('rerunBtn').addEventListener('click', runAIAnalysis);
+</script>
+</body>
+</html>

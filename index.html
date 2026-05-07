@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>持股分析工具集</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+TC:wght@300;400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0d14;
+    --surface: #0f1624;
+    --surface2: #161f33;
+    --border: #1c2840;
+    --border2: #2a3651;
+    --text: #dde4f0;
+    --text-muted: #6b7a96;
+    --text-dim: #4a5670;
+
+    --rev-accent: #4f8ef7;
+    --rev-accent2: #22d3ee;
+    --rev-glow: rgba(79, 142, 247, 0.18);
+
+    --macd-accent: #f5a623;
+    --macd-accent2: #ff4d6a;
+    --macd-glow: rgba(245, 166, 35, 0.16);
+
+    --mono: 'IBM Plex Mono', monospace;
+    --sans: 'IBM Plex Sans TC', sans-serif;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    min-height: 100vh;
+    background-image:
+      radial-gradient(circle at 15% 20%, rgba(79, 142, 247, 0.06) 0%, transparent 40%),
+      radial-gradient(circle at 85% 75%, rgba(245, 166, 35, 0.05) 0%, transparent 40%);
+    background-attachment: fixed;
+  }
+
+  .wrap {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 56px 32px 80px;
+  }
+
+  /* ── HEADER ── */
+  header {
+    margin-bottom: 56px;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 28px;
+  }
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 12px;
+  }
+  .brand-mark {
+    width: 38px; height: 38px;
+    border-radius: 8px;
+    background: linear-gradient(135deg, var(--rev-accent) 0%, var(--macd-accent) 100%);
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--mono);
+    font-weight: 600;
+    color: #0a0d14;
+    font-size: 16px;
+    box-shadow: 0 4px 18px rgba(79, 142, 247, 0.25);
+  }
+  h1 {
+    font-family: var(--mono);
+    font-size: 22px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    color: #fff;
+  }
+  .subtitle {
+    font-size: 13px;
+    color: var(--text-muted);
+    letter-spacing: 0.02em;
+    line-height: 1.6;
+    margin-left: 52px;
+  }
+  .meta-bar {
+    display: flex;
+    gap: 24px;
+    margin-top: 18px;
+    margin-left: 52px;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text-dim);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+  .meta-bar span { display: flex; align-items: center; gap: 6px; }
+  .meta-bar .dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: #34d399;
+    box-shadow: 0 0 8px #34d399;
+  }
+
+  /* ── GRID ── */
+  .section-label {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text-dim);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    margin-bottom: 14px;
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
+    gap: 22px;
+  }
+
+  /* ── CARD ── */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 28px;
+    text-decoration: none;
+    color: inherit;
+    transition: all 0.2s ease;
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    min-height: 280px;
+  }
+  .card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--card-accent), transparent);
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+  .card:hover {
+    border-color: var(--card-accent);
+    transform: translateY(-2px);
+    box-shadow: 0 12px 36px var(--card-glow);
+  }
+  .card:hover::before { opacity: 1; }
+  .card:hover .card-arrow { transform: translateX(4px); color: var(--card-accent); }
+  .card:hover .card-num { color: var(--card-accent); }
+
+  .card-rev {
+    --card-accent: var(--rev-accent);
+    --card-accent2: var(--rev-accent2);
+    --card-glow: var(--rev-glow);
+  }
+  .card-macd {
+    --card-accent: var(--macd-accent);
+    --card-accent2: var(--macd-accent2);
+    --card-glow: var(--macd-glow);
+  }
+
+  .card-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 24px;
+  }
+  .card-num {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text-dim);
+    letter-spacing: 0.08em;
+    transition: color 0.2s;
+  }
+  .card-tag {
+    font-family: var(--mono);
+    font-size: 10px;
+    padding: 3px 8px;
+    border-radius: 3px;
+    letter-spacing: 0.05em;
+    background: var(--card-glow);
+    color: var(--card-accent);
+    border: 1px solid var(--card-accent);
+  }
+
+  .card-title {
+    font-size: 19px;
+    font-weight: 500;
+    margin-bottom: 8px;
+    color: #fff;
+    letter-spacing: 0.01em;
+  }
+  .card-sub {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text-muted);
+    letter-spacing: 0.04em;
+    margin-bottom: 18px;
+  }
+
+  .card-desc {
+    font-size: 13px;
+    color: var(--text-muted);
+    line-height: 1.7;
+    margin-bottom: 22px;
+    flex: 1;
+  }
+
+  .card-features {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 22px;
+  }
+  .feat {
+    font-family: var(--mono);
+    font-size: 10.5px;
+    padding: 4px 9px;
+    border-radius: 3px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    letter-spacing: 0.02em;
+  }
+
+  .card-foot {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
+  }
+  .card-cta {
+    font-family: var(--mono);
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text);
+    letter-spacing: 0.04em;
+  }
+  .card-arrow {
+    font-family: var(--mono);
+    font-size: 14px;
+    color: var(--text-muted);
+    transition: all 0.2s;
+  }
+
+  /* ── FOOTER ── */
+  footer {
+    margin-top: 56px;
+    padding-top: 24px;
+    border-top: 1px solid var(--border);
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text-dim);
+    letter-spacing: 0.04em;
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  footer a { color: var(--text-muted); text-decoration: none; }
+  footer a:hover { color: var(--rev-accent); }
+
+  @media (max-width: 600px) {
+    .wrap { padding: 36px 20px 60px; }
+    h1 { font-size: 19px; }
+    .subtitle, .meta-bar { margin-left: 0; }
+    .brand-mark { width: 32px; height: 32px; font-size: 14px; }
+    .card { padding: 22px; min-height: auto; }
+  }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+
+  <header>
+    <div class="brand">
+      <div class="brand-mark">▣</div>
+      <h1>STOCK TOOLS</h1>
+    </div>
+    <p class="subtitle">持股分析工具集 ｜ 月營收追蹤 與 MACD 技術指標</p>
+    <div class="meta-bar">
+      <span><span class="dot"></span>ONLINE</span>
+      <span>STATIC · NO SERVER</span>
+      <span>v1.0</span>
+    </div>
+  </header>
+
+  <div class="section-label">工具選單 · TOOLS</div>
+
+  <div class="grid">
+
+    <a href="tools/monthly-revenue.html" class="card card-rev">
+      <div class="card-head">
+        <div class="card-num">01 / FUNDAMENTAL</div>
+        <div class="card-tag">基本面</div>
+      </div>
+      <div class="card-title">月營收年度對比儀表板</div>
+      <div class="card-sub">MONTHLY REVENUE · YoY ANALYSIS</div>
+      <div class="card-desc">
+        以折線圖比較 2023–2026 各檔持股逐月營收走勢，內建 YoY 增減顯示、排序與搜尋功能，快速掌握營收動能變化。
+      </div>
+      <div class="card-features">
+        <span class="feat">29 檔持股</span>
+        <span class="feat">YoY 排序</span>
+        <span class="feat">已公布篩選</span>
+        <span class="feat">關鍵字搜尋</span>
+      </div>
+      <div class="card-foot">
+        <span class="card-cta">開啟工具</span>
+        <span class="card-arrow">→</span>
+      </div>
+    </a>
+
+    <a href="tools/macd.html" class="card card-macd">
+      <div class="card-head">
+        <div class="card-num">02 / TECHNICAL</div>
+        <div class="card-tag">技術面</div>
+      </div>
+      <div class="card-title">MACD 持股分析儀表板</div>
+      <div class="card-sub">MACD · EMA 12 / 26 / 9</div>
+      <div class="card-desc">
+        上傳股價 Excel 即時計算 MACD 指標，呈現多空趨勢、零軸位置、黃金/死亡交叉與柱狀變化，多檔持股一目瞭然。
+      </div>
+      <div class="card-features">
+        <span class="feat">多空趨勢</span>
+        <span class="feat">交叉訊號</span>
+        <span class="feat">柱狀分析</span>
+        <span class="feat">Excel 上傳</span>
+      </div>
+      <div class="card-foot">
+        <span class="card-cta">開啟工具</span>
+        <span class="card-arrow">→</span>
+      </div>
+    </a>
+
+  </div>
+
+  <footer>
+    <span>STOCK TOOLS · Static dashboards hosted on GitHub Pages</span>
+    <span>BUILT WITH Chart.js</span>
+  </footer>
+
+</div>
+
+</body>
+</html>
