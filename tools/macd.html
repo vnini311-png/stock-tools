@@ -84,6 +84,51 @@
     background: rgba(74, 158, 255, 0.08);
   }
 
+  /* ── PORTFOLIO TABS ── */
+  .tabs {
+    display: flex;
+    gap: 2px;
+    padding: 0 28px;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg);
+  }
+  .tab {
+    background: none;
+    border: none;
+    border-bottom: 2px solid transparent;
+    color: var(--text2);
+    font-family: var(--mono);
+    font-size: 13px;
+    font-weight: 500;
+    letter-spacing: 0.06em;
+    padding: 14px 22px 12px;
+    cursor: pointer;
+    transition: all 0.15s;
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .tab:hover { color: var(--text); }
+  .tab.active {
+    color: var(--blue);
+    border-bottom-color: var(--blue);
+  }
+  .tab .tab-dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--text3);
+    transition: background 0.15s;
+  }
+  .tab.has-data .tab-dot { background: var(--bear); box-shadow: 0 0 6px var(--bear); }
+  .tab.active .tab-dot { background: var(--blue); box-shadow: 0 0 6px var(--blue); }
+  .tab-meta {
+    font-size: 10.5px;
+    color: var(--text3);
+    margin-left: 4px;
+    letter-spacing: 0.02em;
+    text-transform: none;
+  }
+
   /* ── DROP ZONE ── */
   #dropZone {
     margin: 24px 28px;
@@ -355,11 +400,27 @@
   <h1>◈ MACD 持股分析儀表板</h1>
   <span class="header-meta">EMA 12 / 26 / 9</span>
   <span id="dateLabel">— 尚未載入資料 —</span>
+  <span id="cacheBadge" style="display:none;font-family:var(--mono);font-size:10.5px;color:var(--bear);padding:3px 8px;border:1px solid var(--bear);border-radius:3px;letter-spacing:.04em;">⚡ 已載入快取</span>
+  <button id="reloadBtn" class="back-btn" style="display:none;cursor:pointer;border:1px solid var(--border);background:var(--bg2);">↻ 載入新檔案</button>
+  <button id="clearBtn" class="back-btn" style="display:none;cursor:pointer;border:1px solid var(--border);background:var(--bg2);" title="清除目前組合的快取資料">✕ 清除此組合</button>
+</div>
+
+<div class="tabs" id="portfolioTabs">
+  <button class="tab active" data-portfolio="SIVI">
+    <span class="tab-dot"></span>
+    SIVI's 組合
+    <span class="tab-meta" id="tabMetaSIVI">尚未上傳</span>
+  </button>
+  <button class="tab" data-portfolio="ADAM">
+    <span class="tab-dot"></span>
+    ADAM's 組合
+    <span class="tab-meta" id="tabMetaADAM">尚未上傳</span>
+  </button>
 </div>
 
 <div id="dropZone">
   <div class="drop-icon">📂</div>
-  <div class="drop-title">拖曳或點擊上傳 Excel 檔案</div>
+  <div class="drop-title" id="dropTitle">拖曳或點擊上傳 SIVI's 組合 Excel</div>
   <div class="drop-sub">支援 .xlsx 格式 ｜ 每個工作表為一檔股票（跳過第一張摘要頁）</div>
   <input type="file" id="fileInput" accept=".xlsx,.xls">
 </div>
@@ -732,30 +793,171 @@ function closeModal() {
   document.getElementById('modalContainer').innerHTML = '';
 }
 
-// ── FILE HANDLING ────────────────────────────────────────
+// ── FILE HANDLING & PORTFOLIO TABS ────────────────────────
+// 兩個組合各有獨立快取（v2 用前綴區分）
+const PORTFOLIOS = ['SIVI', 'ADAM'];
+const cacheKey     = p => `macd_dashboard_data_v2_${p}`;
+const cacheMetaKey = p => `macd_dashboard_meta_v2_${p}`;
+
+let currentPortfolio = 'SIVI';
+
+// 一次性遷移：把舊版 v1 單一快取搬到 SIVI（避免使用者之前存的資料消失）
+(function migrateV1() {
+  try {
+    const oldData = localStorage.getItem('macd_dashboard_data_v1');
+    const oldMeta = localStorage.getItem('macd_dashboard_meta_v1');
+    if (oldData && !localStorage.getItem(cacheKey('SIVI'))) {
+      localStorage.setItem(cacheKey('SIVI'), oldData);
+      if (oldMeta) localStorage.setItem(cacheMetaKey('SIVI'), oldMeta);
+    }
+    localStorage.removeItem('macd_dashboard_data_v1');
+    localStorage.removeItem('macd_dashboard_meta_v1');
+  } catch (e) { /* ignore */ }
+})();
+
+function saveCache(portfolio, data) {
+  try {
+    localStorage.setItem(cacheKey(portfolio), JSON.stringify(data));
+    const meta = {
+      savedAt: new Date().toISOString(),
+      latestDate: data.reduce((acc, d) => d.date > acc ? d.date : acc, ''),
+      count: data.length
+    };
+    localStorage.setItem(cacheMetaKey(portfolio), JSON.stringify(meta));
+    return true;
+  } catch (err) {
+    console.warn('快取儲存失敗：', err);
+    return false;
+  }
+}
+
+function loadCache(portfolio) {
+  try {
+    const raw     = localStorage.getItem(cacheKey(portfolio));
+    const metaRaw = localStorage.getItem(cacheMetaKey(portfolio));
+    if (!raw || !metaRaw) return null;
+    return { data: JSON.parse(raw), meta: JSON.parse(metaRaw) };
+  } catch (err) {
+    console.warn('快取讀取失敗：', err);
+    return null;
+  }
+}
+
+function clearCache(portfolio) {
+  localStorage.removeItem(cacheKey(portfolio));
+  localStorage.removeItem(cacheMetaKey(portfolio));
+}
+
+function fmtSavedAt(iso) {
+  const d = new Date(iso);
+  const pad = n => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+// 更新分頁列上的小標記（已上傳檔數 / 尚未上傳）
+function refreshTabMeta() {
+  PORTFOLIOS.forEach(p => {
+    const cached = loadCache(p);
+    const tabBtn = document.querySelector(`.tab[data-portfolio="${p}"]`);
+    const metaEl = document.getElementById(`tabMeta${p}`);
+    if (!tabBtn || !metaEl) return;
+    if (cached && cached.data.length) {
+      tabBtn.classList.add('has-data');
+      metaEl.textContent = `${cached.data.length} 檔`;
+    } else {
+      tabBtn.classList.remove('has-data');
+      metaEl.textContent = '尚未上傳';
+    }
+  });
+}
+
+function showDashboard(fromCache = false) {
+  filteredData = ALL_DATA.slice();
+  const latestDate = ALL_DATA.reduce((acc, d) => d.date > acc ? d.date : acc, '');
+  const metaRaw = localStorage.getItem(cacheMetaKey(currentPortfolio));
+  const meta = metaRaw ? JSON.parse(metaRaw) : {};
+  const savedTxt = meta.savedAt ? `｜ 更新於 ${fmtSavedAt(meta.savedAt)}` : '';
+  document.getElementById('dateLabel').textContent =
+    `[${currentPortfolio}] 最新資料：${latestDate} ｜ ${ALL_DATA.length} 檔 ${savedTxt}`;
+  document.getElementById('cacheBadge').style.display = fromCache ? 'inline-block' : 'none';
+  document.getElementById('reloadBtn').style.display = 'inline-block';
+  document.getElementById('clearBtn').style.display  = 'inline-block';
+
+  sortAndRender();
+  document.getElementById('loading').style.display    = 'none';
+  document.getElementById('dashboard').style.display  = 'block';
+  document.getElementById('dropZone').style.display   = 'none';
+  document.getElementById('aiSection').style.display  = 'block';
+  runAIAnalysis();
+}
+
+function showEmptyState() {
+  // 此組合尚未上傳：顯示拖拉區、隱藏儀表板
+  document.getElementById('dateLabel').textContent =
+    `[${currentPortfolio}] — 尚未載入資料 —`;
+  document.getElementById('cacheBadge').style.display = 'none';
+  document.getElementById('reloadBtn').style.display  = 'none';
+  document.getElementById('clearBtn').style.display   = 'none';
+  document.getElementById('dashboard').style.display  = 'none';
+  document.getElementById('aiSection').style.display  = 'none';
+  document.getElementById('loading').style.display    = 'none';
+  document.getElementById('dropTitle').textContent =
+    `拖曳或點擊上傳 ${currentPortfolio}'s 組合 Excel`;
+  document.getElementById('dropZone').style.display = 'block';
+  document.getElementById('fileInput').value = '';
+  ALL_DATA = [];
+  filteredData = [];
+}
+
+// 切換分頁
+function switchPortfolio(portfolio) {
+  if (!PORTFOLIOS.includes(portfolio)) return;
+  currentPortfolio = portfolio;
+
+  // 更新分頁 active 狀態
+  document.querySelectorAll('.tab').forEach(t => {
+    t.classList.toggle('active', t.dataset.portfolio === portfolio);
+  });
+
+  // 更新 dropZone 提示文字
+  const dropTitleEl = document.getElementById('dropTitle');
+  if (dropTitleEl) dropTitleEl.textContent =
+    `拖曳或點擊上傳 ${portfolio}'s 組合 Excel`;
+
+  // 嘗試載入該組合快取
+  const cached = loadCache(portfolio);
+  if (cached && Array.isArray(cached.data) && cached.data.length) {
+    ALL_DATA = cached.data;
+    showDashboard(true);
+  } else {
+    showEmptyState();
+  }
+}
+
+document.querySelectorAll('.tab').forEach(t => {
+  t.addEventListener('click', () => switchPortfolio(t.dataset.portfolio));
+});
+
 function processFile(file) {
   if (!file) return;
   document.getElementById('loading').style.display = 'block';
   document.getElementById('dashboard').style.display = 'none';
+  document.getElementById('dropZone').style.display = 'none';
 
   const reader = new FileReader();
   reader.onload = e => {
     try {
       ALL_DATA = parseExcel(new Uint8Array(e.target.result));
-      filteredData = ALL_DATA.slice();
-
-      const latestDate = ALL_DATA.reduce((acc, d) => d.date > acc ? d.date : acc, '');
-      document.getElementById('dateLabel').textContent = `最新資料：${latestDate} ｜ ${ALL_DATA.length} 檔`;
-
-      sortAndRender();
-      document.getElementById('loading').style.display = 'none';
-      document.getElementById('dashboard').style.display = 'block';
-      document.getElementById('dropZone').style.display = 'none';
-      document.getElementById('aiSection').style.display = 'block';
-      runAIAnalysis();
+      const ok = saveCache(currentPortfolio, ALL_DATA);
+      if (!ok) {
+        console.warn('資料較大，未能存入快取（仍可正常顯示，但下次需重新上傳）');
+      }
+      refreshTabMeta();
+      showDashboard(false);
     } catch (err) {
       alert('讀取失敗：' + err.message);
       document.getElementById('loading').style.display = 'none';
+      document.getElementById('dropZone').style.display = 'block';
     }
   };
   reader.readAsArrayBuffer(file);
@@ -773,14 +975,29 @@ dz.addEventListener('drop', e => {
 });
 document.getElementById('fileInput').addEventListener('change', e => processFile(e.target.files[0]));
 
-// allow reloading new file via header click
-document.getElementById('dateLabel').addEventListener('click', () => {
+// 「載入新檔案」按鈕：只重新上傳當前分頁
+document.getElementById('reloadBtn').addEventListener('click', () => {
+  document.getElementById('dropTitle').textContent =
+    `拖曳或點擊上傳 ${currentPortfolio}'s 組合 Excel`;
   document.getElementById('dropZone').style.display = 'block';
   document.getElementById('dashboard').style.display = 'none';
+  document.getElementById('aiSection').style.display = 'none';
   document.getElementById('fileInput').value = '';
 });
-document.getElementById('dateLabel').style.cursor = 'pointer';
-document.getElementById('dateLabel').title = '點擊載入新檔案';
+
+// 「清除快取」按鈕：只清當前分頁
+document.getElementById('clearBtn').addEventListener('click', () => {
+  if (!confirm(`確定要清除「${currentPortfolio}'s 組合」的快取資料嗎？`)) return;
+  clearCache(currentPortfolio);
+  refreshTabMeta();
+  showEmptyState();
+});
+
+// 頁面載入時：刷新分頁列、嘗試還原 SIVI（預設）的快取
+(function init() {
+  refreshTabMeta();
+  switchPortfolio('SIVI');
+})();
 
 // ── AI ANALYSIS ──────────────────────────────────────────
 // 鎖死持股名稱與代號對照表（避免 AI 寫錯）
