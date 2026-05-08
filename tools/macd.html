@@ -411,8 +411,8 @@
   <div style="font-family:var(--mono); font-weight:600; color:#fff; margin-bottom:10px; letter-spacing:.04em;">☁ 雲端同步設定（jsonbin.io）</div>
   <div style="margin-bottom:10px; color:var(--text3); font-size:11.5px;">
     1. 到 <a href="https://jsonbin.io/login" target="_blank" style="color:var(--blue);">jsonbin.io</a> 註冊免費帳號 → API Keys 頁面複製 Master Key
-    <br>2. 貼到下方欄位 → 按「初始化」會自動建立兩個 bin（SIVI / ADAM）
-    <br>3. 之後上傳 Excel 會自動推雲端，其他裝置打開頁面會自動拉最新資料
+    <br>2. 貼到下方欄位 → 按「初始化」會自動建立三個 bin（SIVI / ADAM / APIKEY）
+    <br>3. 之後上傳 Excel 與 Anthropic API Key 都會自動同步，其他裝置打開頁面會自動拉最新資料
   </div>
   <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-bottom:8px;">
     <label style="font-family:var(--mono); font-size:11px; min-width:80px; color:var(--text3);">Master Key：</label>
@@ -422,9 +422,13 @@
     <label style="font-family:var(--mono); font-size:11px; min-width:80px; color:var(--text3);">SIVI Bin ID：</label>
     <input type="text" id="cloudBinSIVI" placeholder="(初始化後自動填入)" style="flex:1; min-width:240px; font-family:var(--mono); font-size:11px; background:var(--bg); border:1px solid var(--border); color:var(--text); padding:6px 10px; border-radius:5px;">
   </div>
-  <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-bottom:12px;">
+  <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-bottom:8px;">
     <label style="font-family:var(--mono); font-size:11px; min-width:80px; color:var(--text3);">ADAM Bin ID：</label>
     <input type="text" id="cloudBinADAM" placeholder="(初始化後自動填入)" style="flex:1; min-width:240px; font-family:var(--mono); font-size:11px; background:var(--bg); border:1px solid var(--border); color:var(--text); padding:6px 10px; border-radius:5px;">
+  </div>
+  <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-bottom:12px;">
+    <label style="font-family:var(--mono); font-size:11px; min-width:80px; color:var(--text3);">APIKEY Bin ID：</label>
+    <input type="text" id="cloudBinAPIKEY" placeholder="(用於同步 Anthropic API Key)" style="flex:1; min-width:240px; font-family:var(--mono); font-size:11px; background:var(--bg); border:1px solid var(--border); color:var(--text); padding:6px 10px; border-radius:5px;">
   </div>
   <div style="display:flex; gap:8px; flex-wrap:wrap;">
     <button id="cloudInitBtn" style="font-family:var(--mono); font-size:11px; background:var(--blue); border:none; color:#fff; padding:6px 14px; border-radius:5px; cursor:pointer; font-weight:600;">初始化（建立兩個 bin）</button>
@@ -1158,6 +1162,7 @@ function openCloudPanel() {
   document.getElementById('cloudMasterKey').value = cfg.masterKey || '';
   document.getElementById('cloudBinSIVI').value = cfg.bins?.SIVI || '';
   document.getElementById('cloudBinADAM').value = cfg.bins?.ADAM || '';
+  document.getElementById('cloudBinAPIKEY').value = cfg.bins?.APIKEY || '';
   document.getElementById('cloudMsg').textContent = '';
 }
 function closeCloudPanel() {
@@ -1183,9 +1188,15 @@ document.getElementById('cloudInitBtn').addEventListener('click', async () => {
         cfg.bins[p] = id;
       }
     }
+    // 多建一個 API Key bin
+    if (!cfg.bins.APIKEY) {
+      const id = await cloudCreateBin(masterKey, 'macd-dashboard-apikey');
+      cfg.bins.APIKEY = id;
+    }
     cloudSaveCfg(cfg);
     document.getElementById('cloudBinSIVI').value = cfg.bins.SIVI;
     document.getElementById('cloudBinADAM').value = cfg.bins.ADAM;
+    document.getElementById('cloudBinAPIKEY').value = cfg.bins.APIKEY;
     document.getElementById('cloudMsg').textContent = '✓ 完成！bin 已建立並儲存。';
     setCloudStatus('☁ 已連接', 'var(--bear)');
     // 若本地有資料，立刻推一次
@@ -1194,6 +1205,11 @@ document.getElementById('cloudInitBtn').addEventListener('click', async () => {
       if (cached && cached.data.length) {
         await cloudPush(p, cached.data, cached.meta);
       }
+    }
+    // 若本地有 API Key，也推上去
+    const localKey = loadApiKey();
+    if (localKey) {
+      await cloudPushApiKey(localKey);
     }
   } catch (e) {
     document.getElementById('cloudMsg').textContent = `✕ 失敗：${e.message}`;
@@ -1204,11 +1220,14 @@ document.getElementById('cloudSaveBtn').addEventListener('click', () => {
   const masterKey = document.getElementById('cloudMasterKey').value.trim();
   const sivi = document.getElementById('cloudBinSIVI').value.trim();
   const adam = document.getElementById('cloudBinADAM').value.trim();
+  const apikey = document.getElementById('cloudBinAPIKEY').value.trim();
   if (!masterKey || !sivi || !adam) {
-    document.getElementById('cloudMsg').textContent = '⚠ 三個欄位都要填';
+    document.getElementById('cloudMsg').textContent = '⚠ Master Key、SIVI、ADAM Bin ID 為必填';
     return;
   }
-  cloudSaveCfg({ masterKey, bins: { SIVI: sivi, ADAM: adam } });
+  const bins = { SIVI: sivi, ADAM: adam };
+  if (apikey) bins.APIKEY = apikey;
+  cloudSaveCfg({ masterKey, bins });
   document.getElementById('cloudMsg').textContent = '✓ 已儲存';
   setCloudStatus('☁ 已連接', 'var(--bear)');
 });
@@ -1219,6 +1238,7 @@ document.getElementById('cloudClearBtn').addEventListener('click', () => {
   document.getElementById('cloudMasterKey').value = '';
   document.getElementById('cloudBinSIVI').value = '';
   document.getElementById('cloudBinADAM').value = '';
+  document.getElementById('cloudBinAPIKEY').value = '';
   document.getElementById('cloudMsg').textContent = '已清除設定';
   setCloudStatus('☁ 未設定', 'var(--text3)');
 });
@@ -1372,13 +1392,15 @@ document.getElementById('saveKeyBtn').addEventListener('click', () => {
 });
 document.getElementById('rerunBtn').addEventListener('click', runAIAnalysis);
 
-// ── API KEY 持久化（localStorage） ──
+// ── API KEY 持久化（localStorage + 可選雲端同步） ──
 const API_KEY_STORAGE = 'macd_dashboard_api_key';
 
 function saveApiKey(key) {
   try {
     localStorage.setItem(API_KEY_STORAGE, key);
     updateKeyStatusUI(true);
+    // 自動推雲端（背景）
+    cloudPushApiKey(key).catch(e => console.warn('API Key 推雲端失敗', e));
   } catch (e) { console.warn('API Key 儲存失敗', e); }
 }
 
@@ -1400,9 +1422,47 @@ function updateKeyStatusUI(saved) {
   btn.style.display = saved ? 'inline-block' : 'none';
 }
 
-// 頁面載入時：還原已存的 key
-(function restoreApiKey() {
-  const saved = loadApiKey();
+// 把 API Key 推到雲端（需要 APIKEY bin 已設定）
+async function cloudPushApiKey(key) {
+  const cfg = cloudGetCfg();
+  if (!cfg.masterKey || !cfg.bins?.APIKEY) return;
+  await fetch(`${CLOUD_API}/${cfg.bins.APIKEY}`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Master-Key': cfg.masterKey,
+      'X-Bin-Versioning': 'false'
+    },
+    body: JSON.stringify({ apiKey: key, savedAt: new Date().toISOString() })
+  });
+}
+
+// 從雲端拉 API Key（無設定/失敗則回傳 null）
+async function cloudPullApiKey() {
+  const cfg = cloudGetCfg();
+  if (!cfg.masterKey || !cfg.bins?.APIKEY) return null;
+  try {
+    const r = await fetch(`${CLOUD_API}/${cfg.bins.APIKEY}/latest`, {
+      method: 'GET',
+      headers: { 'X-Master-Key': cfg.masterKey, 'X-Bin-Meta': 'false' }
+    });
+    if (!r.ok) return null;
+    const json = await r.json();
+    const record = json.record || json;
+    return record.apiKey || null;
+  } catch (e) { return null; }
+}
+
+// 頁面載入時：先讀本地，沒有再試雲端
+(async function restoreApiKey() {
+  let saved = loadApiKey();
+  if (!saved) {
+    const cloudKey = await cloudPullApiKey();
+    if (cloudKey) {
+      saved = cloudKey;
+      try { localStorage.setItem(API_KEY_STORAGE, cloudKey); } catch (e) {}
+    }
+  }
   if (saved) {
     _savedKey = saved;
     document.getElementById('aiApiKey').value = saved;
@@ -1410,9 +1470,9 @@ function updateKeyStatusUI(saved) {
   }
 })();
 
-// 清除 Key 按鈕
+// 清除 Key 按鈕（只清本機，雲端保留）
 document.getElementById('clearKeyBtn').addEventListener('click', () => {
-  if (!confirm('確定要清除已儲存的 API Key？')) return;
+  if (!confirm('確定要清除本機儲存的 API Key？（雲端的不會被刪，下次打開會自動還原）')) return;
   clearApiKey();
 });
 </script>
