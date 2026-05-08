@@ -401,8 +401,38 @@
   <span class="header-meta">EMA 12 / 26 / 9</span>
   <span id="dateLabel">— 尚未載入資料 —</span>
   <span id="cacheBadge" style="display:none;font-family:var(--mono);font-size:10.5px;color:var(--bear);padding:3px 8px;border:1px solid var(--bear);border-radius:3px;letter-spacing:.04em;">⚡ 已載入快取</span>
+  <span id="cloudStatus" title="雲端同步狀態" style="font-family:var(--mono);font-size:10.5px;padding:3px 8px;border-radius:3px;letter-spacing:.04em;border:1px solid var(--border);color:var(--text3);cursor:pointer;">☁ 未設定</span>
   <button id="reloadBtn" class="back-btn" style="display:none;cursor:pointer;border:1px solid var(--border);background:var(--bg2);">↻ 載入新檔案</button>
   <button id="clearBtn" class="back-btn" style="display:none;cursor:pointer;border:1px solid var(--border);background:var(--bg2);" title="清除目前組合的快取資料">✕ 清除此組合</button>
+</div>
+
+<!-- 雲端設定面板 -->
+<div id="cloudPanel" style="display:none; margin: 0 28px 14px; padding:16px 20px; background:var(--bg2); border:1px solid var(--border); border-radius:8px; font-family:var(--sans); font-size:12.5px; color:var(--text2); line-height:1.7;">
+  <div style="font-family:var(--mono); font-weight:600; color:#fff; margin-bottom:10px; letter-spacing:.04em;">☁ 雲端同步設定（jsonbin.io）</div>
+  <div style="margin-bottom:10px; color:var(--text3); font-size:11.5px;">
+    1. 到 <a href="https://jsonbin.io/login" target="_blank" style="color:var(--blue);">jsonbin.io</a> 註冊免費帳號 → API Keys 頁面複製 Master Key
+    <br>2. 貼到下方欄位 → 按「初始化」會自動建立兩個 bin（SIVI / ADAM）
+    <br>3. 之後上傳 Excel 會自動推雲端，其他裝置打開頁面會自動拉最新資料
+  </div>
+  <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-bottom:8px;">
+    <label style="font-family:var(--mono); font-size:11px; min-width:80px; color:var(--text3);">Master Key：</label>
+    <input type="password" id="cloudMasterKey" placeholder="$2a$10$..." style="flex:1; min-width:240px; font-family:var(--mono); font-size:11px; background:var(--bg); border:1px solid var(--border); color:var(--text); padding:6px 10px; border-radius:5px;">
+  </div>
+  <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-bottom:8px;">
+    <label style="font-family:var(--mono); font-size:11px; min-width:80px; color:var(--text3);">SIVI Bin ID：</label>
+    <input type="text" id="cloudBinSIVI" placeholder="(初始化後自動填入)" style="flex:1; min-width:240px; font-family:var(--mono); font-size:11px; background:var(--bg); border:1px solid var(--border); color:var(--text); padding:6px 10px; border-radius:5px;">
+  </div>
+  <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-bottom:12px;">
+    <label style="font-family:var(--mono); font-size:11px; min-width:80px; color:var(--text3);">ADAM Bin ID：</label>
+    <input type="text" id="cloudBinADAM" placeholder="(初始化後自動填入)" style="flex:1; min-width:240px; font-family:var(--mono); font-size:11px; background:var(--bg); border:1px solid var(--border); color:var(--text); padding:6px 10px; border-radius:5px;">
+  </div>
+  <div style="display:flex; gap:8px; flex-wrap:wrap;">
+    <button id="cloudInitBtn" style="font-family:var(--mono); font-size:11px; background:var(--blue); border:none; color:#fff; padding:6px 14px; border-radius:5px; cursor:pointer; font-weight:600;">初始化（建立兩個 bin）</button>
+    <button id="cloudSaveBtn" style="font-family:var(--mono); font-size:11px; background:var(--bg); border:1px solid var(--border); color:var(--text); padding:6px 14px; border-radius:5px; cursor:pointer;">儲存設定</button>
+    <button id="cloudClearBtn" style="font-family:var(--mono); font-size:11px; background:var(--bg); border:1px solid var(--border); color:var(--text3); padding:6px 14px; border-radius:5px; cursor:pointer;">清除設定</button>
+    <button id="cloudCloseBtn" style="font-family:var(--mono); font-size:11px; background:transparent; border:1px solid var(--border); color:var(--text3); padding:6px 14px; border-radius:5px; cursor:pointer; margin-left:auto;">關閉</button>
+  </div>
+  <div id="cloudMsg" style="margin-top:10px; font-family:var(--mono); font-size:11px; color:var(--text3); min-height:16px;"></div>
 </div>
 
 <div class="tabs" id="portfolioTabs">
@@ -825,6 +855,8 @@ function saveCache(portfolio, data) {
       count: data.length
     };
     localStorage.setItem(cacheMetaKey(portfolio), JSON.stringify(meta));
+    // 自動推雲端（背景，不阻塞）
+    cloudPush(portfolio, data, meta).catch(e => console.warn('雲端推送失敗', e));
     return true;
   } catch (err) {
     console.warn('快取儲存失敗：', err);
@@ -994,9 +1026,215 @@ document.getElementById('clearBtn').addEventListener('click', () => {
   showEmptyState();
 });
 
-// 頁面載入時：刷新分頁列、嘗試還原 SIVI（預設）的快取
-(function init() {
+// ── CLOUD SYNC（jsonbin.io） ─────────────────────────────
+const CLOUD_CFG_KEY = 'macd_cloud_cfg_v1';
+const CLOUD_API = 'https://api.jsonbin.io/v3/b';
+
+function cloudGetCfg() {
+  try { return JSON.parse(localStorage.getItem(CLOUD_CFG_KEY) || '{}'); }
+  catch { return {}; }
+}
+function cloudSaveCfg(cfg) {
+  localStorage.setItem(CLOUD_CFG_KEY, JSON.stringify(cfg));
+}
+function cloudIsConfigured() {
+  const c = cloudGetCfg();
+  return !!(c.masterKey && c.bins && c.bins.SIVI && c.bins.ADAM);
+}
+
+function setCloudStatus(text, color) {
+  const el = document.getElementById('cloudStatus');
+  if (!el) return;
+  el.textContent = text;
+  el.style.color = color || 'var(--text3)';
+  el.style.borderColor = color || 'var(--border)';
+}
+
+async function cloudCreateBin(masterKey, name) {
+  const r = await fetch(CLOUD_API, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Master-Key': masterKey,
+      'X-Bin-Name': name,
+      'X-Bin-Private': 'true'
+    },
+    body: JSON.stringify({ portfolio: name, data: [], meta: {} })
+  });
+  if (!r.ok) {
+    const e = await r.json().catch(() => ({}));
+    throw new Error(e.message || `HTTP ${r.status}`);
+  }
+  const json = await r.json();
+  return json.metadata?.id || json.record?.id;
+}
+
+async function cloudPush(portfolio, data, meta) {
+  if (!cloudIsConfigured()) return;
+  const cfg = cloudGetCfg();
+  const binId = cfg.bins[portfolio];
+  if (!binId) return;
+  setCloudStatus('☁ 推送中…', 'var(--blue)');
+  try {
+    const r = await fetch(`${CLOUD_API}/${binId}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Master-Key': cfg.masterKey,
+        'X-Bin-Versioning': 'false'
+      },
+      body: JSON.stringify({ portfolio, data, meta })
+    });
+    if (!r.ok) {
+      const e = await r.json().catch(() => ({}));
+      throw new Error(e.message || `HTTP ${r.status}`);
+    }
+    setCloudStatus('☁ 已同步', 'var(--bear)');
+  } catch (err) {
+    setCloudStatus('☁ 推送失敗', 'var(--bull)');
+    throw err;
+  }
+}
+
+async function cloudPull(portfolio) {
+  if (!cloudIsConfigured()) return null;
+  const cfg = cloudGetCfg();
+  const binId = cfg.bins[portfolio];
+  if (!binId) return null;
+  const r = await fetch(`${CLOUD_API}/${binId}/latest`, {
+    method: 'GET',
+    headers: {
+      'X-Master-Key': cfg.masterKey,
+      'X-Bin-Meta': 'false'
+    }
+  });
+  if (!r.ok) {
+    if (r.status === 404) return null;
+    const e = await r.json().catch(() => ({}));
+    throw new Error(e.message || `HTTP ${r.status}`);
+  }
+  const json = await r.json();
+  // jsonbin 回傳格式：{ record: {...}, metadata: {...} } 或直接是 record
+  const record = json.record || json;
+  if (!record || !Array.isArray(record.data) || !record.data.length) return null;
+  return { data: record.data, meta: record.meta || {} };
+}
+
+// 從雲端拉所有組合，比對本地時間戳，雲端較新就更新本地
+async function cloudSyncAll() {
+  if (!cloudIsConfigured()) {
+    setCloudStatus('☁ 未設定', 'var(--text3)');
+    return;
+  }
+  setCloudStatus('☁ 同步中…', 'var(--blue)');
+  let updated = 0;
+  for (const p of PORTFOLIOS) {
+    try {
+      const remote = await cloudPull(p);
+      if (!remote) continue;
+      const localMetaRaw = localStorage.getItem(cacheMetaKey(p));
+      const localMeta = localMetaRaw ? JSON.parse(localMetaRaw) : null;
+      const remoteSavedAt = remote.meta?.savedAt || '';
+      const localSavedAt  = localMeta?.savedAt || '';
+      if (!localSavedAt || remoteSavedAt > localSavedAt) {
+        // 雲端較新：寫入本地（不要再觸發 cloudPush）
+        localStorage.setItem(cacheKey(p), JSON.stringify(remote.data));
+        localStorage.setItem(cacheMetaKey(p), JSON.stringify(remote.meta));
+        updated++;
+      }
+    } catch (e) {
+      console.warn(`拉取 ${p} 失敗`, e);
+    }
+  }
+  setCloudStatus(updated ? `☁ 已更新 ${updated}` : '☁ 已同步', 'var(--bear)');
+  return updated;
+}
+
+// 雲端設定面板互動
+function openCloudPanel() {
+  const panel = document.getElementById('cloudPanel');
+  panel.style.display = 'block';
+  const cfg = cloudGetCfg();
+  document.getElementById('cloudMasterKey').value = cfg.masterKey || '';
+  document.getElementById('cloudBinSIVI').value = cfg.bins?.SIVI || '';
+  document.getElementById('cloudBinADAM').value = cfg.bins?.ADAM || '';
+  document.getElementById('cloudMsg').textContent = '';
+}
+function closeCloudPanel() {
+  document.getElementById('cloudPanel').style.display = 'none';
+}
+document.getElementById('cloudStatus').addEventListener('click', openCloudPanel);
+document.getElementById('cloudCloseBtn').addEventListener('click', closeCloudPanel);
+
+document.getElementById('cloudInitBtn').addEventListener('click', async () => {
+  const masterKey = document.getElementById('cloudMasterKey').value.trim();
+  if (!masterKey) {
+    document.getElementById('cloudMsg').textContent = '⚠ 請先貼上 Master Key';
+    return;
+  }
+  document.getElementById('cloudMsg').textContent = '⟳ 建立 bin 中…';
+  try {
+    const cfg = cloudGetCfg();
+    cfg.masterKey = masterKey;
+    cfg.bins = cfg.bins || {};
+    for (const p of PORTFOLIOS) {
+      if (!cfg.bins[p]) {
+        const id = await cloudCreateBin(masterKey, `macd-dashboard-${p}`);
+        cfg.bins[p] = id;
+      }
+    }
+    cloudSaveCfg(cfg);
+    document.getElementById('cloudBinSIVI').value = cfg.bins.SIVI;
+    document.getElementById('cloudBinADAM').value = cfg.bins.ADAM;
+    document.getElementById('cloudMsg').textContent = '✓ 完成！bin 已建立並儲存。';
+    setCloudStatus('☁ 已連接', 'var(--bear)');
+    // 若本地有資料，立刻推一次
+    for (const p of PORTFOLIOS) {
+      const cached = loadCache(p);
+      if (cached && cached.data.length) {
+        await cloudPush(p, cached.data, cached.meta);
+      }
+    }
+  } catch (e) {
+    document.getElementById('cloudMsg').textContent = `✕ 失敗：${e.message}`;
+  }
+});
+
+document.getElementById('cloudSaveBtn').addEventListener('click', () => {
+  const masterKey = document.getElementById('cloudMasterKey').value.trim();
+  const sivi = document.getElementById('cloudBinSIVI').value.trim();
+  const adam = document.getElementById('cloudBinADAM').value.trim();
+  if (!masterKey || !sivi || !adam) {
+    document.getElementById('cloudMsg').textContent = '⚠ 三個欄位都要填';
+    return;
+  }
+  cloudSaveCfg({ masterKey, bins: { SIVI: sivi, ADAM: adam } });
+  document.getElementById('cloudMsg').textContent = '✓ 已儲存';
+  setCloudStatus('☁ 已連接', 'var(--bear)');
+});
+
+document.getElementById('cloudClearBtn').addEventListener('click', () => {
+  if (!confirm('確定要清除雲端設定？（不會刪除雲端資料，只清除本機的連線資訊）')) return;
+  localStorage.removeItem(CLOUD_CFG_KEY);
+  document.getElementById('cloudMasterKey').value = '';
+  document.getElementById('cloudBinSIVI').value = '';
+  document.getElementById('cloudBinADAM').value = '';
+  document.getElementById('cloudMsg').textContent = '已清除設定';
+  setCloudStatus('☁ 未設定', 'var(--text3)');
+});
+
+// 頁面載入時：先試著從雲端同步，再切到當前分頁
+(async function init() {
   refreshTabMeta();
+  if (cloudIsConfigured()) {
+    setCloudStatus('☁ 同步中…', 'var(--blue)');
+    try {
+      await cloudSyncAll();
+    } catch (e) {
+      console.warn('雲端同步失敗', e);
+    }
+    refreshTabMeta();
+  }
   switchPortfolio('SIVI');
 })();
 
