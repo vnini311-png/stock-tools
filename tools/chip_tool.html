@@ -1177,17 +1177,17 @@ function drawDonut(d) {
     let trustLots = snap.trust_lots;
     let dealerLots = snap.dealer_lots;
 
-    // 防呆: 任何單一類別 > 發行 50% 視為資料錯誤,忽略該欄位 (排除外資, 外資高比例正常)
+    // 防呆: 任何單一類別 > 發行 100% 視為資料錯誤 (持股不可能超過發行量)
     const warnings = [];
-    if (directorLots > issuedLots * 0.5) {
-        warnings.push(`董監持股 ${fmtInt(directorLots)}張 異常 (超過發行 50%),已忽略`);
+    if (directorLots > issuedLots) {
+        warnings.push(`董監持股 ${fmtInt(directorLots)}張 異常 (超過發行量),已忽略`);
         directorLots = 0;
     }
-    if (trustLots > issuedLots * 0.5) {
+    if (trustLots > issuedLots) {
         warnings.push(`投信持股 ${fmtInt(trustLots)}張 異常,已忽略`);
         trustLots = 0;
     }
-    if (dealerLots > issuedLots * 0.5) {
+    if (dealerLots > issuedLots) {
         warnings.push(`自營商持股 ${fmtInt(dealerLots)}張 異常,已忽略`);
         dealerLots = 0;
     }
