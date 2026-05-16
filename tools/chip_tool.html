@@ -66,6 +66,29 @@ header {
     color: var(--text-dim);
 }
 
+.back-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 8px 14px;
+    border-radius: 8px;
+    font-size: 0.88rem;
+    text-decoration: none;
+    transition: all 0.2s;
+    font-family: inherit;
+}
+.back-btn:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+}
+.back-btn span:first-child {
+    font-size: 1rem;
+    line-height: 1;
+}
+
 .view-switch {
     display: flex;
     background: var(--bg);
@@ -465,6 +488,30 @@ header {
 }
 .summary-item .lbl { font-size: 0.72rem; color: var(--text-dim); margin-bottom: 3px; }
 .summary-item .val { font-size: 1rem; font-weight: 600; font-family: 'SF Mono', Menlo, monospace; }
+.summary-item .val .unit {
+    font-size: 0.7rem;
+    font-weight: 400;
+    color: var(--text-dim);
+    margin-left: 3px;
+    font-family: inherit;
+}
+.summary-item .src-note {
+    font-size: 0.65rem;
+    color: var(--text-mute);
+    margin-top: 2px;
+    letter-spacing: 0.02em;
+}
+.summary-item .src-tag {
+    display: inline-block;
+    margin-left: 4px;
+    padding: 1px 6px;
+    background: rgba(79, 158, 255, 0.12);
+    color: var(--accent);
+    border-radius: 3px;
+    font-size: 0.62rem;
+    font-weight: 500;
+    letter-spacing: 0.02em;
+}
 
 .overview-table-wrap {
     background: var(--panel);
@@ -629,6 +676,9 @@ footer {
             <button class="view-btn" data-view="detail">📈 個股分析</button>
         </div>
         <div class="header-actions">
+            <a href="../index.html" class="back-btn" title="返回工具列">
+                <span>←</span> <span>返回工具列</span>
+            </a>
             <button class="upload-btn" id="uploadBtn" title="載入新的 Excel 籌碼檔">
                 <span>📁</span> 載入新資料
             </button>
@@ -760,6 +810,9 @@ footer {
         <p style="margin-top: 14px; padding: 10px; background: rgba(255,193,7,0.08); border-radius: 6px; color: var(--yellow);">
             ⚠️ 檔案格式要求：每個工作表名稱為「代號 中文名」，欄位順序與目前 Excel 一致（外陸資、投信、自營商、融資融券…）
         </p>
+        <p style="margin-top: 10px; padding: 10px; background: rgba(79, 158, 255, 0.08); border-radius: 6px; color: var(--accent);">
+            💡 全市場資料（選用）：可在最前面新增 <code>all market</code> 工作表，欄位含「日期、外陸資買賣超、外資自營商買賣超、投信買賣超、自營商買賣超、三大法人買賣超」，<strong>單位為億元</strong>。總覽頁的法人合計就會顯示為全市場買賣金額（億元）。
+        </p>
         <div class="modal-actions">
             <button class="btn" id="modalCloseBtn">了解</button>
         </div>
@@ -787,8 +840,10 @@ if (window.ChartDataLabels) {
 const BUILTIN_DATA = JSON.parse(document.getElementById('dataPayload').textContent);
 const STORAGE_KEY = 'chip_tool_custom_data_v1';
 const STORAGE_META_KEY = 'chip_tool_custom_meta_v1';
+const STORAGE_MARKET_KEY = 'chip_tool_market_data_v1';
 
 let DATA = BUILTIN_DATA;
+let MARKET = null;   // 全市場法人資料,僅自訂 Excel 含 'all market' sheet 時才有
 let CODES = Object.keys(DATA).sort();
 let IS_CUSTOM = false;
 
@@ -796,6 +851,7 @@ let IS_CUSTOM = false;
 try {
     const stored = localStorage.getItem(STORAGE_KEY);
     const meta = localStorage.getItem(STORAGE_META_KEY);
+    const market = localStorage.getItem(STORAGE_MARKET_KEY);
     if (stored) {
         const parsed = JSON.parse(stored);
         if (parsed && typeof parsed === 'object' && Object.keys(parsed).length > 0) {
@@ -804,6 +860,9 @@ try {
             IS_CUSTOM = true;
             updateDataStatusUI(meta ? JSON.parse(meta) : null);
         }
+    }
+    if (market) {
+        MARKET = JSON.parse(market);
     }
 } catch (e) {
     console.warn('讀取本機資料失敗:', e);
@@ -1054,15 +1113,38 @@ function renderOverview() {
 
     const bullCnt = rows.filter(r => r.cat === 'bullish').length;
     const bearCnt = rows.filter(r => r.cat === 'bearish').length;
-    const fSumLots = rows.reduce((s, r) => s + r.foreign / 1000, 0);
-    const tSumLots = rows.reduce((s, r) => s + r.trust / 1000, 0);
-    const dSumLots = rows.reduce((s, r) => s + r.dealer / 1000, 0);
+
+    // 三大法人買賣超: 用全市場資料(億元), 沒有則顯示 —
+    let foreignVal, trustVal, dealerVal, threeVal, hasMarket;
+    if (MARKET && MARKET.date === latestDate) {
+        foreignVal = MARKET.foreign_net;
+        trustVal = MARKET.trust_net;
+        dealerVal = MARKET.dealer_net;
+        threeVal = MARKET.three_net;
+        hasMarket = true;
+    } else {
+        foreignVal = trustVal = dealerVal = threeVal = null;
+        hasMarket = false;
+    }
+
+    function fmtBillion(v) {
+        if (v === null || v === undefined || isNaN(v)) return '—';
+        const sign = v > 0 ? '+' : '';
+        return sign + v.toFixed(2);
+    }
+    function billionClass(v) {
+        if (v === null || v === undefined || isNaN(v) || v === 0) return 'neutral';
+        return v > 0 ? 'pos' : 'neg';
+    }
+    const tipNoData = hasMarket ? '' : ' title="需在 Excel 加入 all market 工作表"';
+
     document.getElementById('summaryBar').innerHTML = `
-        <div class="summary-item"><div class="lbl">法人偏多檔數</div><div class="val pos">${bullCnt}</div></div>
-        <div class="summary-item"><div class="lbl">法人偏空檔數</div><div class="val neg">${bearCnt}</div></div>
-        <div class="summary-item"><div class="lbl">外資合計買賣超</div><div class="val ${signClass(fSumLots)}">${fmtSign(fSumLots)} 張</div></div>
-        <div class="summary-item"><div class="lbl">投信合計買賣超</div><div class="val ${signClass(tSumLots)}">${fmtSign(tSumLots)} 張</div></div>
-        <div class="summary-item"><div class="lbl">自營合計買賣超</div><div class="val ${signClass(dSumLots)}">${fmtSign(dSumLots)} 張</div></div>
+        <div class="summary-item"><div class="lbl">法人偏多檔數</div><div class="val pos">${bullCnt}</div><div class="src-note">本清單 34 檔</div></div>
+        <div class="summary-item"><div class="lbl">法人偏空檔數</div><div class="val neg">${bearCnt}</div><div class="src-note">本清單 34 檔</div></div>
+        <div class="summary-item"${tipNoData}><div class="lbl">外資買賣超 <span class="src-tag">全市場</span></div><div class="val ${billionClass(foreignVal)}">${fmtBillion(foreignVal)}<span class="unit">億</span></div></div>
+        <div class="summary-item"${tipNoData}><div class="lbl">投信買賣超 <span class="src-tag">全市場</span></div><div class="val ${billionClass(trustVal)}">${fmtBillion(trustVal)}<span class="unit">億</span></div></div>
+        <div class="summary-item"${tipNoData}><div class="lbl">自營商買賣超 <span class="src-tag">全市場</span></div><div class="val ${billionClass(dealerVal)}">${fmtBillion(dealerVal)}<span class="unit">億</span></div></div>
+        <div class="summary-item"${tipNoData}><div class="lbl">三大法人合計 <span class="src-tag">全市場</span></div><div class="val ${billionClass(threeVal)}">${fmtBillion(threeVal)}<span class="unit">億</span></div></div>
     `;
 
     let filtered = rows;
@@ -1584,8 +1666,69 @@ function toNum(v) {
 function processExcel(workbook) {
     const result = {};
     const sheetNames = workbook.SheetNames;
+    let marketData = null;  // 全市場資料
+
+    // 識別 all market 工作表的可能名稱
+    const marketSheetCandidates = ['all market', 'all_market', 'allmarket', '全市場', 'market', 'all market '];
+    const marketSheetName = sheetNames.find(n => {
+        const lower = n.toLowerCase().trim();
+        return marketSheetCandidates.some(c => lower === c.toLowerCase());
+    });
+
+    if (marketSheetName) {
+        const ws = workbook.Sheets[marketSheetName];
+        const rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: null });
+        if (rows.length >= 2) {
+            // 排除 header, 找最新一筆 (按日期排序後取最後)
+            const dataRows = rows.slice(1).filter(r => r[0]);
+            dataRows.sort((a, b) => String(a[0]).localeCompare(String(b[0])));
+            const headerRow = rows[0].map(h => h ? String(h).trim() : '');
+
+            // 嘗試用欄位名找位置, 若失敗則用預設順序
+            // 預期欄位: 日期, 外陸資買賣超, 外資自營商買賣超, 投信買賣超, 自營商買賣超, 三大法人買賣超
+            // 注意: 「自營商」會誤匹配到「外資自營商」, 需用 excludeKeywords 排除
+            function findCol(keywords, excludeKeywords) {
+                excludeKeywords = excludeKeywords || [];
+                for (let i = 0; i < headerRow.length; i++) {
+                    const h = headerRow[i];
+                    if (excludeKeywords.some(k => h.includes(k))) continue;
+                    if (keywords.some(k => h.includes(k))) return i;
+                }
+                return -1;
+            }
+            const idxForeignBase = findCol(['外陸資買賣超', '外資及陸資買賣超', '外陸資']);
+            const idxForeignDealer = findCol(['外資自營商買賣超', '外資自營商']);
+            const idxTrust = findCol(['投信買賣超', '投信']);
+            // 自營商: 必須排除「外資自營商」這個欄位 (它另外被 idxForeignDealer 抓走了)
+            const idxDealer = findCol(['自營商買賣超', '自營商'], ['外資自營商']);
+            const idxThree = findCol(['三大法人']);
+
+            const seriesAll = { dates: [], foreign_net: [], trust_net: [], dealer_net: [], three_net: [] };
+            for (const r of dataRows) {
+                seriesAll.dates.push(String(r[0]));
+                const fBase = idxForeignBase >= 0 ? (toNum(r[idxForeignBase]) || 0) : 0;
+                const fDealer = idxForeignDealer >= 0 ? (toNum(r[idxForeignDealer]) || 0) : 0;
+                seriesAll.foreign_net.push(fBase + fDealer);
+                seriesAll.trust_net.push(idxTrust >= 0 ? (toNum(r[idxTrust]) || 0) : 0);
+                seriesAll.dealer_net.push(idxDealer >= 0 ? (toNum(r[idxDealer]) || 0) : 0);
+                seriesAll.three_net.push(idxThree >= 0 ? (toNum(r[idxThree]) || 0) : 0);
+            }
+
+            const lastIdx = dataRows.length - 1;
+            marketData = {
+                date: seriesAll.dates[lastIdx],
+                foreign_net: seriesAll.foreign_net[lastIdx],
+                trust_net: seriesAll.trust_net[lastIdx],
+                dealer_net: seriesAll.dealer_net[lastIdx],
+                three_net: seriesAll.three_net[lastIdx],
+                series: seriesAll,
+            };
+        }
+    }
 
     for (const sheetName of sheetNames) {
+        // 略過全市場 sheet, 它不是個股
+        if (sheetName === marketSheetName) continue;
         const { code, name } = parseSheetName(sheetName);
         const ws = workbook.Sheets[sheetName];
         const rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: null });
@@ -1657,7 +1800,7 @@ function processExcel(workbook) {
 
         result[code] = { code, name, snapshot: latestSnapshot, latest, series };
     }
-    return result;
+    return { stocks: result, market: marketData };
 }
 
 function updateDataStatusUI(meta) {
@@ -1688,7 +1831,9 @@ document.getElementById('fileInput').addEventListener('change', async (e) => {
         showToast('正在解析 Excel…', 'info');
         const buf = await file.arrayBuffer();
         const workbook = XLSX.read(buf, { type: 'array', cellDates: false });
-        const newData = processExcel(workbook);
+        const result = processExcel(workbook);
+        const newData = result.stocks;
+        const newMarket = result.market;
         if (Object.keys(newData).length === 0) {
             showToast('解析失敗：找不到任何資料工作表', 'error');
             return;
@@ -1710,17 +1855,24 @@ document.getElementById('fileInput').addEventListener('change', async (e) => {
             fileName: file.name,
             dateRange: minDate + ' ~ ' + maxDate,
             sheetCount: Object.keys(newData).length,
+            hasMarket: !!newMarket,
         };
 
         // 寫入 localStorage
         try {
             localStorage.setItem(STORAGE_KEY, JSON.stringify(newData));
             localStorage.setItem(STORAGE_META_KEY, JSON.stringify(meta));
+            if (newMarket) {
+                localStorage.setItem(STORAGE_MARKET_KEY, JSON.stringify(newMarket));
+            } else {
+                localStorage.removeItem(STORAGE_MARKET_KEY);
+            }
         } catch (err) {
             showToast('資料太大,無法存入本機,但本次仍可使用', 'info');
         }
 
         DATA = newData;
+        MARKET = newMarket;
         CODES = Object.keys(DATA).sort();
         IS_CUSTOM = true;
         updateDataStatusUI(meta);
@@ -1734,7 +1886,8 @@ document.getElementById('fileInput').addEventListener('change', async (e) => {
             render(code);
         }
 
-        showToast(`✓ 已載入 ${meta.sheetCount} 檔資料 (${meta.dateRange})`, 'success');
+        const marketNote = newMarket ? ' · 含全市場資料' : '';
+        showToast(`✓ 已載入 ${meta.sheetCount} 檔資料 (${meta.dateRange})${marketNote}`, 'success');
     } catch (err) {
         console.error(err);
         showToast('解析失敗：' + err.message, 'error');
@@ -1747,7 +1900,9 @@ document.getElementById('resetDataBtn').addEventListener('click', () => {
     if (!confirm('確定要還原成內建資料嗎？自訂的資料會從瀏覽器移除。')) return;
     localStorage.removeItem(STORAGE_KEY);
     localStorage.removeItem(STORAGE_META_KEY);
+    localStorage.removeItem(STORAGE_MARKET_KEY);
     DATA = BUILTIN_DATA;
+    MARKET = null;
     CODES = Object.keys(DATA).sort();
     IS_CUSTOM = false;
     updateDataStatusUI(null);
