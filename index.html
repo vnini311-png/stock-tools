@@ -24,6 +24,10 @@
     --macd-accent2: #ff4d6a;
     --macd-glow: rgba(245, 166, 35, 0.16);
 
+    --chip-accent: #a78bfa;
+    --chip-accent2: #2dd4bf;
+    --chip-glow: rgba(167, 139, 250, 0.18);
+
     --mono: 'IBM Plex Mono', monospace;
     --sans: 'IBM Plex Sans TC', sans-serif;
   }
@@ -37,7 +41,8 @@
     min-height: 100vh;
     background-image:
       radial-gradient(circle at 15% 20%, rgba(79, 142, 247, 0.06) 0%, transparent 40%),
-      radial-gradient(circle at 85% 75%, rgba(245, 166, 35, 0.05) 0%, transparent 40%);
+      radial-gradient(circle at 85% 75%, rgba(245, 166, 35, 0.05) 0%, transparent 40%),
+      radial-gradient(circle at 50% 95%, rgba(167, 139, 250, 0.05) 0%, transparent 45%);
     background-attachment: fixed;
   }
 
@@ -161,6 +166,11 @@
     --card-accent2: var(--macd-accent2);
     --card-glow: var(--macd-glow);
   }
+  .card-chip {
+    --card-accent: var(--chip-accent);
+    --card-accent2: var(--chip-accent2);
+    --card-glow: var(--chip-glow);
+  }
 
   .card-head {
     display: flex;
@@ -282,11 +292,11 @@
       <div class="brand-mark">▣</div>
       <h1>STOCK TOOLS</h1>
     </div>
-    <p class="subtitle">持股分析工具集 ｜ 月營收追蹤 與 MACD 技術指標</p>
+    <p class="subtitle">持股分析工具集 ｜ 月營收追蹤、MACD 技術指標、籌碼觀察</p>
     <div class="meta-bar">
       <span><span class="dot"></span>ONLINE</span>
       <span>STATIC · NO SERVER</span>
-      <span>v1.0</span>
+      <span>v1.1</span>
     </div>
   </header>
 
@@ -331,6 +341,28 @@
         <span class="feat">交叉訊號</span>
         <span class="feat">柱狀分析</span>
         <span class="feat">Excel 上傳</span>
+      </div>
+      <div class="card-foot">
+        <span class="card-cta">開啟工具</span>
+        <span class="card-arrow">→</span>
+      </div>
+    </a>
+
+    <a href="tools/chip_tool.html" class="card card-chip">
+      <div class="card-head">
+        <div class="card-num">03 / CHIP</div>
+        <div class="card-tag">籌碼面</div>
+      </div>
+      <div class="card-title">籌碼觀察工具</div>
+      <div class="card-sub">INSTITUTIONAL · MARGIN · HOLDINGS</div>
+      <div class="card-desc">
+        追蹤 34 檔持股的三大法人買賣超、融資融券餘額與持股結構分布，總覽頁附 AI 籌碼解讀標籤，個股頁深入分析趨勢。
+      </div>
+      <div class="card-features">
+        <span class="feat">34 檔持股</span>
+        <span class="feat">三大法人</span>
+        <span class="feat">融資融券</span>
+        <span class="feat">每日更新</span>
       </div>
       <div class="card-foot">
         <span class="card-cta">開啟工具</span>
