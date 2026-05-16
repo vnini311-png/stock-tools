@@ -213,8 +213,9 @@ header {
     transform: translateX(20px);
     transition: opacity 0.25s, transform 0.25s;
     max-width: 360px;
+    pointer-events: none;  /* 預設不接收事件,避免擋住下方元素 */
 }
-.toast.show { opacity: 1; transform: translateX(0); }
+.toast.show { opacity: 1; transform: translateX(0); pointer-events: auto; }
 .toast.error { border-left-color: var(--red); }
 .toast.info { border-left-color: var(--accent); }
 
