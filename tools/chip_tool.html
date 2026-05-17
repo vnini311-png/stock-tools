@@ -876,13 +876,25 @@ try {
     if (stored) {
         const parsed = JSON.parse(stored);
         if (parsed && typeof parsed === 'object' && Object.keys(parsed).length > 0) {
-            DATA = parsed;
-            CODES = Object.keys(DATA).sort();
-            IS_CUSTOM = true;
-            updateDataStatusUI(meta ? JSON.parse(meta) : null);
+            // Schema 檢查: 偵測舊版資料 (沒有千張大戶欄位)
+            const firstStock = parsed[Object.keys(parsed)[0]];
+            const hasNewSchema = firstStock && firstStock.series &&
+                                 Array.isArray(firstStock.series.big_pct);
+            if (!hasNewSchema) {
+                // 舊版資料,清掉 localStorage 改用內建
+                localStorage.removeItem(STORAGE_KEY);
+                localStorage.removeItem(STORAGE_META_KEY);
+                localStorage.removeItem(STORAGE_MARKET_KEY);
+                console.info('偵測到舊版 localStorage 資料 (缺千張大戶欄位),已改用內建新版資料');
+            } else {
+                DATA = parsed;
+                CODES = Object.keys(DATA).sort();
+                IS_CUSTOM = true;
+                updateDataStatusUI(meta ? JSON.parse(meta) : null);
+            }
         }
     }
-    if (market) {
+    if (market && IS_CUSTOM) {
         MARKET = JSON.parse(market);
     }
 } catch (e) {
