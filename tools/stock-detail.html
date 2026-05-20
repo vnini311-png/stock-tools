@@ -1,0 +1,2444 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>個股分析 · 季度獲利追蹤</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #080c18;
+    --surface: #0f1624;
+    --surface2: #161f33;
+    --surface3: #1a2540;
+    --border: #1c2840;
+    --border2: #2a3651;
+    --accent: #34d399;
+    --accent2: #22d3ee;
+    --text: #dde4f0;
+    --text-muted: #4d6080;
+    --text-dim: #6b7a96;
+    --c-eps: #94a3b8;
+    --c-gpm: #f97316;
+    --c-opm: #fbbf24;
+    --c-opx: #22d3ee;
+    --c-rev: #818cf8;
+    --c-up: #34d399;
+    --c-down: #fb7185;
+    --c-flat: #64748b;
+    --c-loss: #991b1b;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { background:var(--bg); color:var(--text); font-family:'Noto Sans TC',sans-serif; min-height:100vh; }
+
+  /* ── Header ── */
+  .header {
+    background:linear-gradient(180deg,#0d1626 0%,#080c18 100%);
+    border-bottom:1px solid var(--border);
+    padding:14px 28px;
+    display:flex; align-items:center; gap:16px; flex-wrap:wrap;
+    position:sticky; top:0; z-index:100;
+  }
+  .breadcrumb {
+    display:flex; align-items:center; gap:6px;
+    font-size:11px; color:var(--text-muted); font-family:'Space Mono',monospace;
+  }
+  .breadcrumb a { color:var(--text-muted); text-decoration:none; transition:color .15s; }
+  .breadcrumb a:hover { color:var(--accent); }
+  .breadcrumb .sep { color:var(--text-dim); }
+
+  .stock-pick {
+    display:flex; align-items:center; gap:10px; margin-left:auto;
+  }
+  .stock-pick select {
+    background:var(--surface); border:1px solid var(--border); color:var(--text);
+    padding:6px 12px; border-radius:5px; font-size:12px;
+    font-family:'Noto Sans TC',sans-serif; cursor:pointer; min-width:200px;
+    outline:none;
+  }
+  .stock-pick select:focus { border-color:var(--accent); }
+  .nav-btn {
+    width:30px; height:30px; border:1px solid var(--border);
+    background:var(--surface); color:var(--text-muted);
+    border-radius:5px; cursor:pointer; font-size:13px;
+    display:flex; align-items:center; justify-content:center; transition:all .15s;
+  }
+  .nav-btn:hover { border-color:var(--accent); color:var(--accent); }
+
+  /* ── Title row ── */
+  .title-row {
+    padding:22px 28px 16px;
+    display:flex; align-items:baseline; justify-content:space-between; flex-wrap:wrap; gap:14px;
+  }
+  .stock-title { display:flex; align-items:baseline; gap:14px; }
+  .stock-id-big {
+    font-family:'Space Mono',monospace; font-size:18px; color:var(--accent2);
+    letter-spacing:1.5px;
+  }
+  .stock-name-big {
+    font-size:26px; font-weight:700; color:#fff;
+  }
+  .latest-info {
+    display:flex; gap:18px; font-size:12px; color:var(--text-muted);
+  }
+  .latest-info b { color:var(--text); font-weight:600; }
+
+  /* ── KPI strip ── */
+  .kpi-strip {
+    margin:0 28px;
+    background:var(--surface);
+    border:1px solid var(--border);
+    border-radius:10px;
+    padding:18px 22px;
+    display:grid; grid-template-columns:repeat(4,1fr); gap:18px;
+  }
+  .kpi { display:flex; flex-direction:column; gap:5px; position:relative; padding-left:14px; }
+  .kpi::before {
+    content:''; position:absolute; left:0; top:2px; bottom:2px;
+    width:3px; border-radius:2px; background:var(--kpi-color);
+  }
+  .kpi.k-eps { --kpi-color: var(--c-eps); }
+  .kpi.k-gpm { --kpi-color: var(--c-gpm); }
+  .kpi.k-opm { --kpi-color: var(--c-opm); }
+  .kpi.k-opx { --kpi-color: var(--c-opx); }
+  .kpi-lbl {
+    font-size:11px; color:var(--text-muted); letter-spacing:.4px;
+  }
+  .kpi-val {
+    font-family:'Space Mono',monospace; font-size:22px; font-weight:700; color:#fff;
+  }
+  .kpi-val.na { color:var(--text-muted); font-size:16px; }
+  .kpi-meta {
+    display:flex; gap:8px; flex-wrap:wrap; font-family:'Space Mono',monospace; font-size:11px;
+  }
+  .kpi-meta .pill { padding:1px 7px; border-radius:3px; font-weight:600; }
+  .kpi-meta .up { background:rgba(52,211,153,.12); color:var(--c-up); }
+  .kpi-meta .down { background:rgba(251,113,133,.12); color:var(--c-down); }
+  .kpi-meta .flat { background:rgba(100,116,139,.12); color:var(--c-flat); }
+  .kpi-meta .new { background:rgba(245,158,11,.15); color:#f59e0b; }
+  .kpi-meta .pending { background:rgba(100,116,139,.12); color:var(--c-flat); }
+
+  /* ── Section ── */
+  .section {
+    margin:18px 28px 0;
+    background:var(--surface);
+    border:1px solid var(--border);
+    border-radius:10px;
+    padding:18px 22px;
+  }
+  .section-head {
+    display:flex; align-items:baseline; justify-content:space-between; gap:14px;
+    margin-bottom:14px; flex-wrap:wrap;
+  }
+  .section-title {
+    font-size:14px; font-weight:600; color:#fff;
+    display:flex; align-items:center; gap:8px;
+  }
+  .section-title::before {
+    content:''; width:3px; height:14px; background:var(--accent); border-radius:1px;
+  }
+  .section-sub {
+    font-family:'Space Mono',monospace; font-size:10.5px; color:var(--text-muted);
+    letter-spacing:.4px;
+  }
+
+  /* ── Forecast & Completion two-column ── */
+  .two-col {
+    display:grid; grid-template-columns:1fr 1.4fr; gap:18px;
+    margin:18px 28px 0;
+  }
+  @media (max-width:900px) { .two-col { grid-template-columns:1fr; } }
+  .two-col .section { margin:0; }
+
+  /* completion - dual-bar layout */
+  .comp-group { margin-bottom:14px; }
+  .comp-group:last-of-type { margin-bottom:8px; }
+  .comp-group-head {
+    display:flex; align-items:baseline; gap:8px; flex-wrap:wrap;
+    margin-bottom:6px; font-family:'Space Mono',monospace;
+  }
+  .comp-tag {
+    font-size:10.5px; font-weight:700; letter-spacing:.5px;
+    padding:2px 8px; border-radius:3px;
+  }
+  .comp-tag.eps-tag { background:rgba(34,211,238,.12); color:var(--accent2); }
+  .comp-tag.rev-tag { background:rgba(129,140,248,.15); color:var(--c-rev); }
+  .comp-realized {
+    font-size:16px; font-weight:700; color:#fff;
+  }
+  .comp-divider { color:var(--text-dim); font-size:14px; }
+  .comp-consensus { font-size:13px; color:var(--text-muted); }
+  .comp-consensus.muted { font-style:italic; font-size:12px; }
+  .comp-pct {
+    margin-left:auto; font-size:14px; font-weight:700; color:var(--accent);
+  }
+  .comp-pct.over { color:#fbbf24; }
+  .comp-pct.low { color:var(--c-down); }
+  .comp-bar {
+    height:18px; background:var(--surface3); border-radius:5px; overflow:hidden;
+    position:relative; border:1px solid var(--border2);
+  }
+  .comp-bar-fill {
+    height:100%; transition:width .6s cubic-bezier(.4,0,.2,1);
+    background:linear-gradient(90deg, var(--accent2) 0%, var(--accent) 100%);
+  }
+  .comp-bar-fill.rev {
+    background:linear-gradient(90deg, var(--c-rev) 0%, #c4b5fd 100%);
+  }
+  .comp-bar-fill.over {
+    background:linear-gradient(90deg, var(--accent) 0%, #fbbf24 100%);
+  }
+  .comp-bar-fill.low {
+    background:linear-gradient(90deg, var(--c-down) 0%, #fbbf24 100%);
+  }
+  .quarter-marks {
+    display:flex; justify-content:space-between; margin-top:4px;
+    font-family:'Space Mono',monospace; font-size:9.5px; color:var(--text-dim); letter-spacing:.3px;
+  }
+  .ann-eps {
+    margin-top:14px; padding:10px 12px;
+    background:var(--surface2); border:1px solid var(--border);
+    border-radius:6px; font-size:12px; color:var(--text-muted); line-height:1.7;
+  }
+  .ann-eps b { color:var(--text); font-family:'Space Mono',monospace; }
+
+  /* broker table */
+  .broker-table {
+    width:100%; border-collapse:collapse;
+    font-family:'Noto Sans TC',sans-serif; font-size:12.5px;
+  }
+  .broker-table th, .broker-table td {
+    text-align:left; padding:8px 10px;
+    border-bottom:1px solid var(--border);
+  }
+  .broker-table th {
+    color:var(--text-muted); font-weight:500; font-size:10.5px;
+    text-transform:uppercase; letter-spacing:.5px;
+  }
+  .broker-table td { color:var(--text); }
+  .broker-table td.num { font-family:'Space Mono',monospace; }
+  .broker-table tr.empty td { color:var(--text-dim); font-style:italic; }
+  .broker-table tr:last-child td { border-bottom:none; }
+  .rating { padding:2px 8px; border-radius:3px; font-size:11px; font-weight:600; display:inline-block; }
+  .rating.buy { background:rgba(52,211,153,.15); color:var(--c-up); }
+  .rating.hold { background:rgba(245,158,11,.15); color:#f59e0b; }
+  .rating.sell { background:rgba(251,113,133,.15); color:var(--c-down); }
+  .rating.na { color:var(--text-dim); }
+  .stat-row {
+    display:grid; grid-template-columns:repeat(5,1fr); gap:14px; padding:12px 6px 0;
+    border-top:1px dashed var(--border); margin-top:8px;
+  }
+  .stat { display:flex; flex-direction:column; gap:2px; }
+  .stat-lbl { font-size:10px; color:var(--text-muted); letter-spacing:.3px; }
+  .stat-val { font-family:'Space Mono',monospace; font-size:14px; font-weight:700; color:#fff; }
+  .stat-val.na { color:var(--text-dim); }
+
+  /* ── forecast banner (loading/error) ── */
+  .fc-banner {
+    margin-bottom:12px; padding:10px 14px; border-radius:6px;
+    font-size:12.5px; display:flex; align-items:flex-start; gap:10px;
+    line-height:1.6;
+  }
+  .fc-banner-loading {
+    background:rgba(34,211,238,.08); border:1px solid rgba(34,211,238,.25);
+    color:var(--accent2);
+  }
+  .fc-banner-error {
+    background:rgba(251,113,133,.06); border:1px solid rgba(251,113,133,.3);
+    color:#fda4af; flex-direction:column; gap:6px;
+  }
+  .fc-banner-error code {
+    display:block; padding:6px 10px; margin-top:4px;
+    background:#0a0d14; border:1px solid var(--border);
+    border-radius:4px; font-family:'Space Mono',monospace;
+    font-size:11px; color:var(--text); white-space:pre-wrap; word-break:break-word;
+  }
+  .fc-spinner {
+    width:14px; height:14px; flex-shrink:0; margin-top:2px;
+    border:2px solid rgba(34,211,238,.25); border-top-color: var(--accent2);
+    border-radius:50%; animation: spin 0.8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .fc-banner.fc-banner-loaded {
+    background:rgba(52,211,153,.06); border:1px solid rgba(52,211,153,.2);
+    color:var(--c-up); padding:6px 14px; font-size:11px;
+  }
+
+  /* ── charts ── */
+  .chart-host { padding:6px 4px 0; }
+  canvas.big { max-height:340px; }
+  canvas.rev { max-height:280px; }
+
+  /* legend chips for charts */
+  .chart-legend { display:flex; gap:16px; flex-wrap:wrap; padding:4px 4px 8px; }
+  .chart-legend-item { display:flex; align-items:center; gap:6px; font-size:11px; color:var(--text-muted); }
+  .chart-legend-dot { width:9px; height:9px; border-radius:50%; }
+  .chart-legend-dot.bar { width:14px; height:3px; border-radius:1px; }
+  .chart-legend-dot.dash { width:14px; height:0; border-bottom:2px dashed; }
+
+  .footer-note {
+    margin:24px 28px 32px;
+    font-size:11px; color:var(--text-dim);
+    text-align:center; line-height:1.7;
+  }
+  .footer-note a { color:var(--text-muted); text-decoration:none; }
+  .footer-note a:hover { color:var(--accent); }
+  .footer-note code {
+    font-family:'Space Mono',monospace; font-size:10.5px;
+    background:var(--surface); padding:2px 6px; border-radius:3px;
+    color:var(--accent2); border:1px solid var(--border);
+  }
+
+  ::-webkit-scrollbar { width:5px; height:5px; }
+  ::-webkit-scrollbar-track { background:var(--bg); }
+  ::-webkit-scrollbar-thumb { background:var(--border); border-radius:3px; }
+  ::-webkit-scrollbar-thumb:hover { background:var(--accent); }
+
+  @media (max-width:600px) {
+    .header { padding:12px 18px; }
+    .title-row, .kpi-strip, .section, .two-col, .footer-note { margin-left:18px; margin-right:18px; }
+    .kpi-strip { grid-template-columns:repeat(2,1fr); padding:14px; }
+    .kpi-val { font-size:18px; }
+    .stock-name-big { font-size:20px; }
+    .stat-row { grid-template-columns:repeat(2,1fr); }
+    .stock-pick { width:100%; }
+    .stock-pick select { flex:1; }
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="breadcrumb">
+    <a href="../index.html">工具列</a>
+    <span class="sep">/</span>
+    <a href="quarterly-earnings.html">季度獲利總覽</a>
+    <span class="sep">/</span>
+    <span id="bc-stock">個股分析</span>
+  </div>
+  <div class="stock-pick">
+    <button class="nav-btn" id="prev-btn" title="前一檔">‹</button>
+    <select id="stock-select"></select>
+    <button class="nav-btn" id="next-btn" title="下一檔">›</button>
+  </div>
+</div>
+
+<div class="title-row">
+  <div class="stock-title">
+    <span class="stock-id-big" id="t-id">—</span>
+    <span class="stock-name-big" id="t-name">—</span>
+  </div>
+  <div class="latest-info">
+    <span>最新季：<b id="t-latest">—</b></span>
+    <span>EPS YoY：<b id="t-yoy">—</b></span>
+    <span>EPS QoQ：<b id="t-qoq">—</b></span>
+  </div>
+</div>
+
+<!-- KPI Strip -->
+<div class="kpi-strip">
+  <div class="kpi k-eps">
+    <span class="kpi-lbl">單季 EPS</span>
+    <span class="kpi-val" id="k-eps">—</span>
+    <div class="kpi-meta" id="k-eps-meta"></div>
+  </div>
+  <div class="kpi k-gpm">
+    <span class="kpi-lbl">毛利率</span>
+    <span class="kpi-val" id="k-gpm">—</span>
+    <div class="kpi-meta" id="k-gpm-meta"></div>
+  </div>
+  <div class="kpi k-opm">
+    <span class="kpi-lbl">營業利益率</span>
+    <span class="kpi-val" id="k-opm">—</span>
+    <div class="kpi-meta" id="k-opm-meta"></div>
+  </div>
+  <div class="kpi k-opx">
+    <span class="kpi-lbl">營業費用率</span>
+    <span class="kpi-val" id="k-opx">—</span>
+    <div class="kpi-meta" id="k-opx-meta"></div>
+  </div>
+</div>
+
+<!-- Forecast & Completion two-column -->
+<div class="two-col">
+
+  <div class="section">
+    <div class="section-head">
+      <div class="section-title">2026 年完成率</div>
+      <div class="section-sub" id="comp-sub">FY2026 PROGRESS</div>
+    </div>
+
+    <!-- EPS row -->
+    <div class="comp-group">
+      <div class="comp-group-head">
+        <span class="comp-tag eps-tag">EPS</span>
+        <span class="comp-realized" id="cs-realized">—</span>
+        <span class="comp-divider">/</span>
+        <span class="comp-consensus" id="cs-consensus">—</span>
+        <span class="comp-pct" id="cs-pct-label">—</span>
+      </div>
+      <div class="comp-bar">
+        <div class="comp-bar-fill" id="cs-fill" style="width:0%"></div>
+      </div>
+    </div>
+
+    <!-- Revenue row -->
+    <div class="comp-group">
+      <div class="comp-group-head">
+        <span class="comp-tag rev-tag">營收</span>
+        <span class="comp-realized" id="rs-realized">—</span>
+        <span class="comp-divider">/</span>
+        <span class="comp-consensus" id="rs-consensus">—</span>
+        <span class="comp-pct" id="rs-pct-label">—</span>
+      </div>
+      <div class="comp-bar">
+        <div class="comp-bar-fill rev" id="rs-fill" style="width:0%"></div>
+      </div>
+    </div>
+
+    <div class="quarter-marks">
+      <span>0%</span><span>25% Q1</span><span>50% Q2</span><span>75% Q3</span><span>100%</span>
+    </div>
+
+    <div class="ann-eps" id="ann-eps">—</div>
+  </div>
+
+  <div class="section">
+    <div class="section-head">
+      <div class="section-title">2026 券商預估</div>
+      <div class="section-sub">BROKER FORECASTS · 5 SLOTS</div>
+    </div>
+    <table class="broker-table">
+      <thead>
+        <tr>
+          <th style="width:22%">券商</th>
+          <th style="width:14%">預估 EPS</th>
+          <th style="width:18%">預估營收 (億)</th>
+          <th style="width:14%">目標價</th>
+          <th style="width:14%">評等</th>
+          <th style="width:18%">報告日期</th>
+        </tr>
+      </thead>
+      <tbody id="brokers-tbody"></tbody>
+    </table>
+    <div class="stat-row">
+      <div class="stat">
+        <span class="stat-lbl">EPS 平均</span>
+        <span class="stat-val" id="br-avg">—</span>
+      </div>
+      <div class="stat">
+        <span class="stat-lbl">EPS 區間</span>
+        <span class="stat-val" id="br-range">—</span>
+      </div>
+      <div class="stat">
+        <span class="stat-lbl">營收平均 (億)</span>
+        <span class="stat-val" id="br-rev-avg">—</span>
+      </div>
+      <div class="stat">
+        <span class="stat-lbl">目標價平均</span>
+        <span class="stat-val" id="br-tp-avg">—</span>
+      </div>
+      <div class="stat">
+        <span class="stat-lbl">買進 / 持有 / 賣出</span>
+        <span class="stat-val" id="br-rating-mix">—</span>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Quarterly EPS & Margins -->
+<div class="section">
+  <div class="section-head">
+    <div class="section-title">季度 EPS 與利潤率走勢</div>
+    <div class="section-sub">1Q23 — 1Q26 · QUARTERLY</div>
+  </div>
+  <div class="chart-legend">
+    <div class="chart-legend-item"><div class="chart-legend-dot bar" style="background:var(--c-eps)"></div>單季 EPS (元)</div>
+    <div class="chart-legend-item"><div class="chart-legend-dot" style="background:var(--c-gpm)"></div>毛利率 %</div>
+    <div class="chart-legend-item"><div class="chart-legend-dot" style="background:var(--c-opm)"></div>營業利益率 %</div>
+    <div class="chart-legend-item"><div class="chart-legend-dot dash" style="border-color:var(--c-opx)"></div>營業費用率 %</div>
+  </div>
+  <div class="chart-host"><canvas id="main-chart" class="big"></canvas></div>
+</div>
+
+<!-- Quarterly Revenue -->
+<div class="section">
+  <div class="section-head">
+    <div class="section-title">季度營收走勢</div>
+    <div class="section-sub">QUARTERLY REVENUE · YoY %</div>
+  </div>
+  <div class="chart-legend">
+    <div class="chart-legend-item"><div class="chart-legend-dot bar" style="background:var(--c-rev)"></div>單季營收 (億元)</div>
+    <div class="chart-legend-item"><div class="chart-legend-dot" style="background:var(--c-up)"></div>YoY %</div>
+  </div>
+  <div class="chart-host"><canvas id="rev-chart" class="rev"></canvas></div>
+</div>
+
+<div class="footer-note">
+  完成率 = 已公布單季 EPS 累計 ÷ 券商共識年度 EPS。
+</div>
+
+<script>
+const DATA = {"quarters":["1Q23","2Q23","3Q23","4Q23","1Q24","2Q24","3Q24","4Q24","1Q25","2Q25","3Q25","4Q25","1Q26"],"stocks":[{"id":"2308","name":"台達電","eps":[2.66,3.14,3.6,3.45,2.22,3.83,4.75,2.76,3.94,5.37,7.16,6.67,7.91],"gpm":[27.53,29.21,29.57,30.4,29.52,34.13,34.93,30.77,31.78,35.51,34.87,34.59,37.0],"opm":[9.05,10.23,11.04,10.36,8.1,12.7,14.64,9.37,11.8,15.05,16.5,16.35,17.83],"opx":[18.48,18.98,18.53,20.04,21.42,21.43,20.29,21.4,19.97,20.46,18.37,18.24,19.17],"rev":[92859244,100551392,107795435,100020430,91297990,103443972,112203112,114202483,118919406,124035086,150317577,161613099,159352652]},{"id":"2330","name":"台積電","eps":[7.98, 7.01, 8.14, 9.21, 8.7, 9.56, 12.55, 14.45, 13.95, 15.36, 17.44, 19.5, 22.08],"gpm":[56.33, 54.11, 54.26, 53.04, 53.07, 53.17, 57.83, 59, 58.79, 58.62, 59.45, 62.33, 66.25],"opm":[45.46, 42, 41.71, 41.6, 42.02, 42.55, 47.49, 49.02, 48.51, 49.63, 50.58, 54, 58.1],"opx":[10.87, 12.1, 12.57, 11.45, 11.03, 10.44, 10.41, 9.94, 10.15, 9.05, 8.87, 8.43, 8.29],"rev":[516139994,484962837,506791723,533596905,588562691,673512470,759691439,1017307979,895600000,1030000000,998800000,1084500000,1010800000]},{"id":"2357","name":"華碩","eps":[-2.26,3.48,14.94,5.29,7.33,15.9,16.83,2.21,17.22,13.2,14.21,15.36,13.19],"gpm":[9.62,13.98,18.3,17.3,16.05,19.34,17.94,16.92,16.66,13.81,14.33,15.94,14.86],"opm":[-2.8,1.48,6.7,2.93,3.98,7.93,7.01,1.02,8.52,4.17,4.91,4.63,5.71],"opx":[12.43,12.5,11.6,14.37,12.07,11.4,10.93,15.89,8.14,9.64,9.42,11.31,9.15],"rev":[111397836,111565831,120082720,123205037,133041000,139708000,139151000,149800000,153300000,150000000,145000000,154800000,152300000]},{"id":"2379","name":"瑞昱","eps":[3.5,5.08,5.01,4.25,6.1,8.55,8.53,6.63,9.28,7.62,6.69,5.15,8.44],"gpm":[43.14,41.72,42.02,44.74,50.83,50.88,51.36,48.35,51.56,50.23,49.68,48.08,49.66],"opm":[7.21,7.97,7.46,5.12,10.71,12.95,12.7,10.93,14.0,12.56,10.56,8.88,11.89],"opx":[35.93,33.75,34.56,39.62,40.13,37.92,38.66,37.42,37.56,37.67,39.12,39.2,37.77],"rev":[10841320,12666800,16523180,17249630,18953300,21332080,23554070,24299940,26300100,28805030,31974550,32382770,33763620]},{"id":"2885","name":"元大金","eps":[0.46,0.72,0.67,0.24,0.73,0.63,0.73,0.67,0.59,0.64,0.79,0.74,null],"gpm":[null,null,null,null,null,null,null,null,null,null,null,null,null],"opm":[34.04,39.24,39.08,23.29,38.66,38.76,38.52,35.74,32.24,46.04,38.36,33.03,null],"opx":[null,null,null,null,null,null,null,null,null,null,null,null,null],"rev":[14000000,19420000,23720000,28680000,35960000,33780000,41210000,52930000,61940000,54220000,50520000,63970000,70580000]},{"id":"3006","name":"晶豪科","eps":[-1.32,-0.36,-0.57,-2.17,-0.21,0.88,0.74,0.4,-0.27,-2.59,0.05,3.8,7.22],"gpm":[5.88,0.13,2.38,2.81,5.73,15.66,16.23,10.36,11.82,3.85,12.92,32.33,47.52],"opm":[-13.72,-15.88,-12.54,-13.06,-8.13,0.02,1.2,-5.24,-5.37,-11.88,-2.3,20.25,31.03],"opx":[19.6,16.01,14.93,15.87,13.86,15.64,15.03,15.59,17.19,15.73,15.22,12.07,16.5],"rev":[1642720,1856170,2464854,2729783,2876155,3295241,3708416,3652816,3823885,4056896,4345514,4337930,4600166]},{"id":"3017","name":"奇鋐","eps":[2.85,3.18,3.72,4.36,4.08,5.08,6.02,6.02,8.28,10.3,13.67,16.66,20.17],"gpm":[19.74,20.11,21.66,21.8,22.03,23.02,23.5,24.99,25.83,24.41,26.12,26.39,29.77],"opm":[11.43,10.41,13.35,14.45,12.64,14.72,16.3,16.04,18.69,17.21,20.77,20.96,24.51],"opx":[8.31,9.71,8.31,7.35,9.39,8.29,7.2,8.95,7.14,7.2,5.36,5.43,5.26],"rev":[6143169,8101873,10760205,11138742,12471000,15893500,19940000,22003100,24552100,29611900,34141700,34774700,36705000]},{"id":"3034","name":"聯詠","eps":[7.81,11.29,10.46,8.76,8.04,8.86,8.64,7.89,8.65,6.14,6.01,6.06,6.19],"gpm":[41.91,41.74,42.25,41.48,41.09,41.14,39.74,39.51,39.76,36.3,36.29,38.19,39.06],"opm":[23.55,24.92,24.69,23.22,21.06,21.82,22.4,19.46,21.0,18.44,15.7,16.92,17.4],"opx":[18.37,16.82,17.56,18.26,20.03,19.32,17.34,20.05,18.76,17.86,20.6,21.26,21.66],"rev":null},{"id":"3036","name":"文曄","eps":[0.82,0.79,1.45,0.73,1.57,1.7,2.54,2.27,2.42,2.28,3.4,3.31,null],"gpm":[3.45,3.58,3.03,2.63,2.53,4.51,4.19,4.12,4.58,4.32,3.74,3.74,null],"opm":[1.65,1.74,1.35,1.01,1.36,1.75,1.6,1.61,1.85,1.8,1.72,1.75,null],"opx":[1.8,1.84,1.68,1.62,1.17,2.76,2.6,2.51,2.73,2.53,2.02,1.99,null],"rev":[138410000,162160000,191470000,203700000,214590000,258840000,290240000,313600000,318700000,355900000,349000000,333000000,303680000]},{"id":"3044","name":"健鼎","eps":[2.18,1.84,4.07,3.46,3.5,3.78,4.42,4.24,4.48,4.65,5.62,4.7,5.61],"gpm":[15.3,17.05,22.12,22.23,21.97,23.05,23.49,24.27,24.97,26.21,26.76,25.47,26.51],"opm":[7.42,8.98,14.34,13.6,13.99,13.83,15.35,15.81,16.65,18.01,18.54,17.08,18.34],"opx":[7.88,8.07,7.79,8.64,7.98,8.33,8.14,8.46,8.32,8.21,8.22,8.39,8.17],"rev":[5964561,6872038,8352714,7996470,8420488,9419242,10817010,10645587,10472001,11591323,12930648,12854395,13071942]},{"id":"3491","name":"昇達科","eps":[0.89,0.92,0.73,0.66,1.23,2.79,2.07,2.49,2.22,1.07,1.33,3.14,3.68],"gpm":[39.6,35.97,39.44,46.38,45.26,55.44,51.64,50.89,50.57,43.35,47.31,58.57,57.98],"opm":[15.7,6.34,11.78,16.58,17.68,30.56,29.0,26.34,26.89,18.22,17.37,27.57,30.74],"opx":[23.9,29.64,27.66,29.8,27.58,24.89,22.64,24.55,23.68,25.13,29.94,30.99,27.24],"rev":[1572051,1928342,2414789,3096819,3452860,4512392,6231679,7590513,8429984,11445906,13711944,14003847,13701505]},{"id":"3587","name":"閎康","eps":[2.45,3.35,2.68,2.35,2.11,3.3,2.87,2.11,0.76,1.38,2.11,1.84,2.24],"gpm":[36.64,39.14,33.93,31.59,30.06,36.51,36.34,28.41,24.28,27.7,31.35,30.02,30.89],"opm":[16.75,21.3,15.67,12.1,13.15,18.43,16.67,6.83,6.48,7.91,14.61,10.45,12.7],"opx":[19.89,17.84,18.26,19.49,16.91,18.08,19.66,21.58,17.8,19.79,16.73,19.57,18.19],"rev":[1070615,1186972,1325562,1358796,1446415,1795501,2053532,2088301,2307220,2663567,2947441,2973260,3214760]},{"id":"3596","name":"智易","eps":[2.25,2.61,3.12,3.0,2.82,2.66,2.98,2.81,3.08,3.02,3.42,3.08,3.12],"gpm":[14.21,14.22,14.42,14.81,14.82,14.98,15.42,15.36,15.39,15.04,15.34,15.29,15.16],"opm":[6.28,5.68,5.96,6.77,6.04,5.6,6.94,6.24,6.76,6.86,6.49,6.31,6.43],"opx":[7.93,8.54,8.46,8.04,8.78,9.39,8.48,9.12,8.63,8.18,8.85,8.98,8.73],"rev":[7306774,8576739,9447555,8608103,9405758,11064377,12383683,11494215,11715156,13310015,14044557,13599026,13501370]},{"id":"5269","name":"祥碩","eps":[5.63,7.08,9.74,9.73,12.8,13.18,13.06,12.55,16.39,15.02,21.21,20.05,24.85],"gpm":[52.67,52.05,52.48,62.32,59.21,52.05,52.87,52.79,55.14,52.49,51.04,51.26,50.83],"opm":[23.03,25.81,26.52,37.33,34.49,31.98,32.12,16.03,29.99,36.47,29.12,22.92,23.09],"opx":[30.01,26.33,25.88,25.31,24.7,20.25,20.68,36.84,25.02,15.92,21.84,28.6,27.7],"rev":[3861009,4522813,5293374,5594816,5904934,6927900,7795800,8330600,8842500,10296500,11460200,11824700,12203800]},{"id":"5536","name":"聖暉","eps":[3.75,4.42,4.11,2.77,3.45,6.58,5.06,6.0,5.18,6.95,8.22,8.07,12.76],"gpm":[19.82,21.06,19.15,18.53,20.77,23.36,22.75,20.19,17.96,19.26,17.83,20.43,25.38],"opm":[12.75,16.01,12.42,10.96,12.72,16.39,15.02,13.8,11.96,14.38,14.29,13.96,19.82],"opx":[7.07,5.05,6.73,7.57,8.05,6.97,7.73,6.4,5.99,4.88,3.53,6.47,5.56],"rev":[4766909,7115606,8729009,9062486,8753000,11226000,13291000,13823000,13251000,16609000,18988000,19715000,18678000]},{"id":"5904","name":"寶雅","eps":[6.43,4.59,6.89,6.57,6.78,5.61,7.27,7.15,7.48,5.58,7.59,8.98,9.3],"gpm":[44.74,41.39,44.49,45.64,44.27,43.87,46.0,46.31,44.45,42.64,45.9,47.62,45.13],"opm":[15.75,11.29,15.5,15.16,15.05,12.35,15.53,15.28,15.29,12.09,15.66,17.92,17.34],"opx":[28.99,30.11,28.99,30.49,29.22,31.52,30.47,31.03,29.16,30.55,30.24,29.71,27.79],"rev":[6159878,7210872,7637613,8342004,7016000,8109000,8747000,9196000,7869000,9060000,9450000,9950000,9130000]},{"id":"6214","name":"精誠","eps":[1.84,1.72,1.36,1.1,2.63,1.87,1.79,1.4,1.0,2.34,2.07,2.5,2.64],"gpm":[22.86,23.55,22.71,21.12,19.93,23.4,20.61,21.0,21.23,23.15,18.94,24.72,20.4],"opm":[4.82,5.25,3.64,3.23,4.7,3.84,3.2,2.6,4.99,4.67,2.74,2.52,4.94],"opx":[18.04,18.3,19.07,17.89,15.23,19.56,17.41,18.4,16.24,18.49,16.2,22.2,15.45],"rev":[21275406,23491893,25496000,26436000,24806000,27729000,29551000,32002000,29134000,32320000,34986000,35041000,32292000]},{"id":"6257","name":"矽格","eps":[0.49,1.13,1.61,0.57,1.62,1.62,1.02,1.63,1.57,0.7,1.68,2.21,2.1],"gpm":[20.34,21.68,25.67,24.32,23.8,27.85,26.45,26.11,28.48,31.44,27.22,29.71,31.66],"opm":[10.98,11.66,15.36,15.28,14.19,18.85,17.41,16.81,19.56,23.47,17.84,20.18,22.37],"opx":[9.37,10.02,10.32,9.04,9.61,9.01,9.04,9.3,8.92,7.96,9.38,9.52,9.29],"rev":[2278947,2525801,3139886,3246434,3239256,3627367,4052829,4190106,4388578,4809085,5362641,5289944,5548211]},{"id":"6285","name":"啟碁","eps":[1.43,2.28,3.31,1.79,1.58,2.45,1.09,2.1,1.92,1.03,1.39,2.04,2.36],"gpm":[11.1,12.14,13.48,12.2,11.58,12.6,11.37,12.86,12.2,11.55,12.12,14.09,13.76],"opm":[3.27,3.92,5.12,4.39,2.94,4.04,2.31,4.0,3.68,3.2,2.74,4.06,4.67],"opx":[7.83,8.21,8.36,7.8,8.64,8.56,9.05,8.87,8.52,8.35,9.39,10.03,9.09],"rev":[13758795,16008690,20565241,20942617,21862000,26517700,30861000,32067800,32458900,37462100,42572000,42154200,42443100]},{"id":"6643","name":"M31","eps":[2.24,2.86,4.45,3.24,1.22,2.64,0.67,-1.27,0.47,-0.98,-0.18,2.38,-1.18],"gpm":[100.0,100.0,100.0,100.0,100.0,100.0,100.0,100.0,100.0,100.0,100.0,100.0,100.0],"opm":[14.26,25.11,33.75,32.47,0.79,24.86,11.7,-30.79,1.76,8.73,-13.59,17.38,-16.79],"opx":[85.74,74.89,66.25,67.53,99.21,75.14,88.3,130.79,98.24,91.27,113.59,82.62,116.79],"rev":[714540,1006047,1242057,1467894,1671400,2192200,2502900,2731000,3159700,3896800,4473400,4712000,5141800]},{"id":"6715","name":"嘉基","eps":[1.6,1.44,2.26,1.07,1.66,1.49,1.35,0.77,0.69,0.45,0.03,0.63,1.02],"gpm":[34.89,31.82,41.25,36.3,41.62,43.26,38.96,29.41,35.3,43.49,27.51,38.44,40.01],"opm":[21.23,15.22,24.08,16.96,19.0,22.05,19.47,7.67,9.31,21.12,-9.67,12.22,15.89],"opx":[13.65,16.6,17.16,19.34,22.62,21.22,19.49,21.75,26.0,22.37,37.18,26.22,24.11],"rev":[23000,28000,32000,30000,33000,36000,41000,38000,42000,48000,53000,53000,57000]},{"id":"6781","name":"AES-KY","eps":[7.19,5.15,5.23,5.48,5.41,5.22,6.27,8.49,9.7,9.66,9.35,9.49,10.64],"gpm":[37.61,37.4,37.7,37.47,38.58,39.63,39.65,39.7,39.21,36.23,34.94,33.98,36.1],"opm":[24.34,20.07,20.87,21.45,22.48,22.36,23.59,25.6,27.73,24.82,23.2,21.96,24.16],"opx":[13.26,17.33,16.83,16.02,16.11,17.27,16.06,14.1,11.48,11.4,11.74,12.02,11.94],"rev":null},{"id":"6805","name":"富世達","eps":[1.26,2.95,3.27,2.56,3.27,3.74,4.87,6.02,5.2,4.82,10.02,10.96,13.38],"gpm":[23.18,22.21,23.16,24.5,24.17,23.15,24.33,19.2,22.14,24.07,27.66,29.05,32.31],"opm":[13.14,14.32,16.01,17.5,15.77,14.69,16.68,12.39,16.24,18.96,22.23,21.86,26.78],"opx":[10.05,7.89,7.16,7.0,8.4,8.45,7.65,6.8,5.89,5.11,5.43,7.18,5.53],"rev":[728517,862316,1012908,1038936,1151400,1474500,1783400,1954700,2282900,2789200,3222300,3280100,3517100]},{"id":"7769","name":"鴻勁","eps":[null,null,null,null,null,null,null,null,15.89,15.26,22.39,20.63,25.7],"gpm":[null,null,null,null,null,null,null,null,59.09,58.64,57.7,52.31,56.24],"opm":[null,null,null,null,null,null,null,null,52.99,52.92,50.81,44.24,49.98],"opx":[null,null,null,null,null,null,null,null,6.1,5.72,6.89,8.07,6.26],"rev":null},{"id":"1519","name":"華城","eps":[0.79,2.08,2.73,4.27,2.29,3.11,4.28,5.45,3.0,2.5,3.45,5.31,3.29],"gpm":[28.03,29.55,32.88,31.85,34.3,36.19,38.32,36.42,35.85,40.37,41.69,42.2,43.61],"opm":[14.42,19.06,21.31,22.51,20.45,24.75,26.44,23.79,21.88,24.72,20.62,19.22,21.2],"opx":[13.61,10.48,11.57,9.34,13.85,11.45,11.89,12.63,13.97,15.65,21.08,22.98,22.41],"rev":null},{"id":"2345","name":"智邦","eps":[3.65,4.02,4.28,4.04,4.02,4.62,4.75,8.1,9.17,9.01,14.0,14.95,14.92],"gpm":[21.9,22.35,23.03,24.1,20.87,21.24,19.89,20.69,20.23,17.93,17.16,17.9,19.55],"opm":[13.14,12.93,13.74,14.72,10.19,12.49,12.28,13.26,13.81,13.39,12.34,12.65,14.33],"opx":[8.76,9.42,9.29,9.37,10.67,8.75,7.61,7.4,6.31,4.52,4.82,5.27,5.21],"rev":[17930248,22363724,31510192,30431181,33130871,37888695,39880634,43144052,45384490,52408450,58806044,62265120,64378545]},{"id":"2368","name":"金像電","eps":[0.88,1.68,2.39,2.29,2.5,3.12,3.28,2.63,3.6,3.48,6.49,5.8,6.87],"gpm":[20.36,23.77,29.31,27.77,26.87,31.63,32.29,25.94,31.3,29.56,35.56,33.66,34.81],"opm":[11.71,15.02,20.09,19.88,19.04,22.98,23.95,16.6,21.08,20.7,26.28,24.3,26.85],"opx":[9.22,8.71,8.7,8.43,7.71,8.57,8.37,9.35,10.03,8.89,9.28,9.58,7.93],"rev":[5004581,4798844,6079598,6938095,7402543,8804310,10135780,10188307,10641111,11860723,13559417,14126488,14356463]},{"id":"2382","name":"廣達","eps":[1.68,2.63,3.32,2.67,3.13,3.92,4.32,4.12,5.06,4.37,4.26,5.75,5.5],"gpm":[6.6,8.52,8.11,8.06,8.48,8.58,7.33,7.45,7.92,7.05,6.85,6.33,4.78],"opm":[2.95,4.61,4.4,4.1,4.52,4.91,4.61,3.63,5.07,4.05,3.71,3.76,2.85],"opx":[3.65,3.92,3.71,3.96,3.96,3.68,2.72,3.81,2.86,3.0,3.14,2.56,1.94],"rev":[221487000,239937000,295422000,287728000,290669000,366570000,455259000,562740000,589100000,760100000,833100000,793900000,726500000]},{"id":"3363","name":"上詮","eps":[0.38,-0.17,0.0,-0.08,-0.29,0.26,-0.14,-0.3,0.01,0.16,0.2,-0.22,-0.98],"gpm":[14.57,7.24,19.33,13.89,7.88,19.95,14.16,9.28,17.15,19.74,23.81,12.43,1.88],"opm":[-4.7,-8.82,4.22,-9.46,-15.76,1.68,-4.36,-11.2,-1.66,5.52,2.15,-9.15,-40.86],"opx":[19.27,16.06,15.11,23.35,23.65,18.27,18.52,20.48,18.81,14.22,21.66,21.58,42.75],"rev":[1313622,1314964,1554241,1810224,2038617,2488319,2699900,2709400,2809100,3223700,3504500,3375700,3277300]},{"id":"3680","name":"家登","eps":[3.94,1.68,1.94,2.68,2.24,3.0,4.39,2.7,2.2,0.44,1.56,5.23,2.55],"gpm":[50.23,43.41,47.32,49.72,44.02,45.24,48.4,37.61,43.75,40.87,39.06,43.28,42.63],"opm":[30.15,10.57,17.59,21.7,16.22,21.83,25.12,7.03,17.68,14.36,9.15,17.47,15.63],"opx":[20.08,32.84,29.73,28.02,27.8,23.41,23.29,30.58,26.07,26.51,29.92,25.8,27.01],"rev":[3292971,4139556,5249030,5420715,6365091,7662482,9172548,9829360,10709400,12741000,14776200,15325600,15755100]},{"id":"4979","name":"華星光","eps":[0.3,0.62,1.25,1.1,0.74,0.99,0.98,1.08,1.52,0.67,1.54,1.69,1.62],"gpm":[14.78,19.1,20.86,20.54,18.09,19.82,18.33,17.27,22.46,17.32,21.08,23.02,25.42],"opm":[8.39,13.9,16.93,17.08,12.55,15.46,14.87,13.15,18.48,13.82,16.26,18.6,21.0],"opx":[6.39,5.2,3.94,3.45,5.54,4.36,3.46,4.11,3.98,3.5,4.82,4.42,4.42],"rev":[1883632,1973439,2281514,2118233,2144401,2687248,3426957,3439376,3746461,4404225,4970248,5128118,5549840]},{"id":"6442","name":"光聖","eps":[0.05,1.07,1.02,0.39,1.72,3.27,3.43,5.68,4.26,2.6,7.03,9.4,7.82],"gpm":[26.44,35.83,33.68,46.52,49.14,53.16,63.3,54.13,49.42,61.67,60.37,57.57,55.41],"opm":[3.86,9.54,6.86,14.38,14.69,22.0,24.61,18.08,18.16,27.3,22.07,26.93,26.4],"opx":[22.58,26.29,26.81,32.14,34.44,31.16,38.69,36.05,31.26,34.38,38.3,30.64,29.01],"rev":[1797889,2263435,2664678,2839384,3239300,4222800,5053300,5197800,5923500,7434200,8747900,8915500,9428300]},{"id":"8155","name":"博智","eps":[1.06,0.82,0.76,1.42,0.74,1.82,0.69,1.44,1.3,-0.19,2.26,3.4,3.29],"gpm":[19.08,16.45,15.44,18.87,16.41,19.34,12.83,15.82,15.62,7.13,20.64,24.14,24.05],"opm":[7.98,5.58,5.39,10.48,5.6,10.18,4.37,7.06,6.33,-0.75,11.69,14.04,14.07],"opx":[11.11,10.87,10.05,8.39,10.81,9.16,8.45,8.76,9.29,7.88,8.95,10.1,9.98],"rev":[758000,621000,736000,925000,969000,867000,913000,993000,1127000,1213000,1260000,1393000,1535000]},{"id":"2404","name":"漢唐","eps":[6.01,6.6,6.97,5.24,6.79,6.36,9.26,10.47,10.55,7.41,16.11,14.02,16.31],"gpm":[11.63,11.16,10.16,10.86,12.51,13.42,25.47,20.67,23.21,21.26,20.18,17.19,23.32],"opm":[9.47,8.86,7.89,9.04,9.72,10.62,20.9,16.86,19.04,18.53,16.64,13.88,19.57],"opx":[2.15,2.29,2.28,1.83,2.8,2.79,4.57,3.81,4.17,2.72,3.53,3.31,3.75],"rev":null}]};
+// 5 家券商預估資料（之後給 Excel，我來更新這段）
+let FORECASTS = {
+  "2308": {
+    "name": "台達電",
+    "year": 2026,
+    "brokers": [
+      { "broker": "凱基投顧", "eps": 38.42, "revenue": 773312, "target_price": 2308, "rating": "增加持股 (OW)", "report_date": "2026-04-20" },
+      { "broker": "Morgan Stanley", "eps": 37.12, "revenue": 763100, "target_price": 1976, "rating": "Overweight (Top Pick)", "report_date": "2026-04-29" },
+      { "broker": "群益投顧", "eps": 38.77, "revenue": 765506, "target_price": 2800, "rating": "Buy", "report_date": "2026-05-04" },
+      { "broker": "", "eps": null, "revenue": null, "target_price": null, "rating": "", "report_date": "" },
+      { "broker": "", "eps": null, "revenue": null, "target_price": null, "rating": "", "report_date": "" }
+    ]
+  },
+  "2330": {
+    "name": "台積電",
+    "year": 2026,
+    "brokers": [
+      { "broker": "元大投顧", "eps": 99.67, "revenue": 5260824, "target_price": 2600, "rating": "買進", "report_date": "2026-04-16" },
+      { "broker": "凱基投顧", "eps": 102.74, "revenue": 5278986, "target_price": 2600, "rating": "增加持股", "report_date": "2026-04-16" },
+      {
+        "broker": "",
+        "eps": null,
+        "revenue": null,
+        "target_price": null,
+        "rating": "",
+        "report_date": ""
+      },
+      {
+        "broker": "",
+        "eps": null,
+        "revenue": null,
+        "target_price": null,
+        "rating": "",
+        "report_date": ""
+      },
+      {
+        "broker": "",
+        "eps": null,
+        "revenue": null,
+        "target_price": null,
+        "rating": "",
+        "report_date": ""
+      }
+    ]
+  },
+  "2357": {
+    "name": "華碩",
+    "year": 2026,
+    "brokers": [
+      {
+        "broker": "",
+        "eps": null,
+        "revenue": null,
+        "target_price": null,
+        "rating": "",
+        "report_date": ""
+      },
+      {
+        "broker": "",
+        "eps": null,
+        "revenue": null,
+        "target_price": null,
+        "rating": "",
+        "report_date": ""
+      },
+      {
+        "broker": "",
+        "eps": null,
+        "revenue": null,
+        "target_price": null,
+        "rating": "",
+        "report_date": ""
+      },
+      {
+        "broker": "",
+        "eps": null,
+        "revenue": null,
+        "target_price": null,
+        "rating": "",
+        "report_date": ""
+      },
+      {
+        "broker": "",
+        "eps": null,
+        "revenue": null,
+        "target_price": null,
+        "rating": "",
+        "report_date": ""
+      }
+    ]
+  },
+  "2379": {
+    "name": "瑞昱",
+    "year": 2026,
+    "brokers": [
+      {
+        "broker": "",
+        "eps": null,
+        "revenue": null,
+        "target_price": null,
+        "rating": "",
+        "report_date": ""
+      },
+      {
+        "broker": "",
+        "eps": null,
+        "revenue": null,
+        "target_price": null,
+        "rating": "",
+        "report_date": ""
+      },
+      {
+        "broker": "",
+        "eps": null,
+        "revenue": null,
+        "target_price": null,
+        "rating": "",
+        "report_date": ""
+      },
+      {
+        "broker": "",
+        "eps": null,
+        "revenue": null,
+        "target_price": null,
+        "rating": "",
+        "report_date": ""
+      },
+      {
+        "broker": "",
+        "eps": null,
+        "revenue": null,
+        "target_price": null,
+        "rating": "",
+        "report_date": ""
+      }
+    ]
+  },
+  "2885": {
+    "name": "元大金",
+    "year": 2026,
+    "brokers": [
+      {
+        "broker": "",
+        "eps": null,
+        "revenue": null,
+        "target_price": null,
+        "rating": "",
+        "report_date": ""
+      },
+      {
+        "broker": "",
+        "eps": null,
+        "revenue": null,
+        "target_price": null,
+        "rating": "",
+        "report_date": ""
+      },
+      {
+        "broker": "",
+        "eps": null,
+        "revenue": null,
+        "target_price": null,
+        "rating": "",
+        "report_date": ""
+      },
+      {
+        "broker": "",
+        "eps": null,
+        "revenue": null,
+        "target_price": null,
+        "rating": "",
+        "report_date": ""
+      },
+      {
+        "broker": "",
+        "eps": null,
+        "revenue": null,
+        "target_price": null,
+        "rating": "",
+        "report_date": ""
+      }
+    ]
+  },
+  "3006": {
+    "name": "晶豪科",
+    "year": 2026,
+    "brokers": [
+      {
+        "broker": "",
+        "eps": null,
+        "revenue": null,
+        "target_price": null,
+        "rating": "",
+        "report_date": ""
+      },
+      {
+        "broker": "",
+        "eps": null,
+        "revenue": null,
+        "target_price": null,
+        "rating": "",
+        "report_date": ""
+      },
+      {
+        "broker": "",
+        "eps": null,
+        "revenue": null,
+        "target_price": null,
+        "rating": "",
+        "report_date": ""
+      },
+      {
+        "broker": "",
+        "eps": null,
+        "revenue": null,
+        "target_price": null,
+        "rating": "",
+        "report_date": ""
+      },
+      {
+        "broker": "",
+        "eps": null,
+        "revenue": null,
+        "target_price": null,
+        "rating": "",
+        "report_date": ""
+      }
+    ]
+  },
+  "3017": {
+    "name": "奇鋐",
+    "year": 2026,
+    "brokers": [
+      {
+        "broker": "",
+        "eps": null,
+        "revenue": null,
+        "target_price": null,
+        "rating": "",
+        "report_date": ""
+      },
+      {
+        "broker": "",
+        "eps": null,
+        "revenue": null,
+        "target_price": null,
+        "rating": "",
+        "report_date": ""
+      },
+      {
+        "broker": "",
+        "eps": null,
+        "revenue": null,
+        "target_price": null,
+        "rating": "",
+        "report_date": ""
+      },
+      {
+        "broker": "",
+        "eps": null,
+        "revenue": null,
+        "target_price": null,
+        "rating": "",
+        "report_date": ""
+      },
+      {
+        "broker": "",
+        "eps": null,
+        "revenue": null,
+        "target_price": null,
+        "rating": "",
+        "report_date": ""
+      }
+    ]
+  },
+  "3034": {
+    "name": "聯詠",
+    "year": 2026,
+    "brokers": [
+      {
+        "broker": "",
+        "eps": null,
+        "revenue": null,
+        "target_price": null,
+        "rating": "",
+        "report_date": ""
+      },
+      {
+        "broker": "",
+        "eps": null,
+        "revenue": null,
+        "target_price": null,
+        "rating": "",
+        "report_date": ""
+      },
+      {
+        "broker": "",
+        "eps": null,
+        "revenue": null,
+        "target_price": null,
+        "rating": "",
+        "report_date": ""
+      },
+      {
+        "broker": "",
+        "eps": null,
+        "revenue": null,
+        "target_price": null,
+        "rating": "",
+        "report_date": ""
+      },
+      {
+        "broker": "",
+        "eps": null,
+        "revenue": null,
+        "target_price": null,
+        "rating": "",
+        "report_date": ""
+      }
+    ]
+  },
+  "3036": {
+    "name": "文曄",
+    "year": 2026,
+    "brokers": [
+      {
+        "broker": "",
+        "eps": null,
+        "revenue": null,
+        "target_price": null,
+        "rating": "",
+        "report_date": ""
+      },
+      {
+        "broker": "",
+        "eps": null,
+        "revenue": null,
+        "target_price": null,
+        "rating": "",
+        "report_date": ""
+      },
+      {
+        "broker": "",
+        "eps": null,
+        "revenue": null,
+        "target_price": null,
+        "rating": "",
+        "report_date": ""
+      },
+      {
+        "broker": "",
+        "eps": null,
+        "revenue": null,
+        "target_price": null,
+        "rating": "",
+        "report_date": ""
+      },
+      {
+        "broker": "",
+        "eps": null,
+        "revenue": null,
+        "target_price": null,
+        "rating": "",
+        "report_date": ""
+      }
+    ]
+  },
+  "3044": {
+    "name": "健鼎",
+    "year": 2026,
+    "brokers": [
+      {
+        "broker": "",
+        "eps": null,
+        "revenue": null,
+        "target_price": null,
+        "rating": "",
+        "report_date": ""
+      },
+      {
+        "broker": "",
+        "eps": null,
+        "revenue": null,
+        "target_price": null,
+        "rating": "",
+        "report_date": ""
+      },
+      {
+        "broker": "",
+        "eps": null,
+        "revenue": null,
+        "target_price": null,
+        "rating": "",
+        "report_date": ""
+      },
+      {
+        "broker": "",
+        "eps": null,
+        "revenue": null,
+        "target_price": null,
+        "rating": "",
+        "report_date": ""
+      },
+      {
+        "broker": "",
+        "eps": null,
+        "revenue": null,
+        "target_price": null,
+        "rating": "",
+        "report_date": ""
+      }
+    ]
+  },
+  "3491": {
+    "name": "昇達科",
+    "year": 2026,
+    "brokers": [
+      {
+        "broker": "",
+        "eps": null,
+        "revenue": null,
+        "target_price": null,
+        "rating": "",
+        "report_date": ""
+      },
+      {
+        "broker": "",
+        "eps": null,
+        "revenue": null,
+        "target_price": null,
+        "rating": "",
+        "report_date": ""
+      },
+      {
+        "broker": "",
+        "eps": null,
+        "revenue": null,
+        "target_price": null,
+        "rating": "",
+        "report_date": ""
+      },
+      {
+        "broker": "",
+        "eps": null,
+        "revenue": null,
+        "target_price": null,
+        "rating": "",
+        "report_date": ""
+      },
+      {
+        "broker": "",
+        "eps": null,
+        "revenue": null,
+        "target_price": null,
+        "rating": "",
+        "report_date": ""
+      }
+    ]
+  },
+  "3587": {
+    "name": "閎康",
+    "year": 2026,
+    "brokers": [
+      {
+        "broker": "",
+        "eps": null,
+        "revenue": null,
+        "target_price": null,
+        "rating": "",
+        "report_date": ""
+      },
+      {
+        "broker": "",
+        "eps": null,
+        "revenue": null,
+        "target_price": null,
+        "rating": "",
+        "report_date": ""
+      },
+      {
+        "broker": "",
+        "eps": null,
+        "revenue": null,
+        "target_price": null,
+        "rating": "",
+        "report_date": ""
+      },
+      {
+        "broker": "",
+        "eps": null,
+        "revenue": null,
+        "target_price": null,
+        "rating": "",
+        "report_date": ""
+      },
+      {
+        "broker": "",
+        "eps": null,
+        "revenue": null,
+        "target_price": null,
+        "rating": "",
+        "report_date": ""
+      }
+    ]
+  },
+  "3596": {
+    "name": "智易",
+    "year": 2026,
+    "brokers": [
+      {
+        "broker": "",
+        "eps": null,
+        "revenue": null,
+        "target_price": null,
+        "rating": "",
+        "report_date": ""
+      },
+      {
+        "broker": "",
+        "eps": null,
+        "revenue": null,
+        "target_price": null,
+        "rating": "",
+        "report_date": ""
+      },
+      {
+        "broker": "",
+        "eps": null,
+        "revenue": null,
+        "target_price": null,
+        "rating": "",
+        "report_date": ""
+      },
+      {
+        "broker": "",
+        "eps": null,
+        "revenue": null,
+        "target_price": null,
+        "rating": "",
+        "report_date": ""
+      },
+      {
+        "broker": "",
+        "eps": null,
+        "revenue": null,
+        "target_price": null,
+        "rating": "",
+        "report_date": ""
+      }
+    ]
+  },
+  "5269": {
+    "name": "祥碩",
+    "year": 2026,
+    "brokers": [
+      {
+        "broker": "",
+        "eps": null,
+        "revenue": null,
+        "target_price": null,
+        "rating": "",
+        "report_date": ""
+      },
+      {
+        "broker": "",
+        "eps": null,
+        "revenue": null,
+        "target_price": null,
+        "rating": "",
+        "report_date": ""
+      },
+      {
+        "broker": "",
+        "eps": null,
+        "revenue": null,
+        "target_price": null,
+        "rating": "",
+        "report_date": ""
+      },
+      {
+        "broker": "",
+        "eps": null,
+        "revenue": null,
+        "target_price": null,
+        "rating": "",
+        "report_date": ""
+      },
+      {
+        "broker": "",
+        "eps": null,
+        "revenue": null,
+        "target_price": null,
+        "rating": "",
+        "report_date": ""
+      }
+    ]
+  },
+  "5536": {
+    "name": "聖暉",
+    "year": 2026,
+    "brokers": [
+      {
+        "broker": "",
+        "eps": null,
+        "revenue": null,
+        "target_price": null,
+        "rating": "",
+        "report_date": ""
+      },
+      {
+        "broker": "",
+        "eps": null,
+        "revenue": null,
+        "target_price": null,
+        "rating": "",
+        "report_date": ""
+      },
+      {
+        "broker": "",
+        "eps": null,
+        "revenue": null,
+        "target_price": null,
+        "rating": "",
+        "report_date": ""
+      },
+      {
+        "broker": "",
+        "eps": null,
+        "revenue": null,
+        "target_price": null,
+        "rating": "",
+        "report_date": ""
+      },
+      {
+        "broker": "",
+        "eps": null,
+        "revenue": null,
+        "target_price": null,
+        "rating": "",
+        "report_date": ""
+      }
+    ]
+  },
+  "5904": {
+    "name": "寶雅",
+    "year": 2026,
+    "brokers": [
+      {
+        "broker": "",
+        "eps": null,
+        "revenue": null,
+        "target_price": null,
+        "rating": "",
+        "report_date": ""
+      },
+      {
+        "broker": "",
+        "eps": null,
+        "revenue": null,
+        "target_price": null,
+        "rating": "",
+        "report_date": ""
+      },
+      {
+        "broker": "",
+        "eps": null,
+        "revenue": null,
+        "target_price": null,
+        "rating": "",
+        "report_date": ""
+      },
+      {
+        "broker": "",
+        "eps": null,
+        "revenue": null,
+        "target_price": null,
+        "rating": "",
+        "report_date": ""
+      },
+      {
+        "broker": "",
+        "eps": null,
+        "revenue": null,
+        "target_price": null,
+        "rating": "",
+        "report_date": ""
+      }
+    ]
+  },
+  "6214": {
+    "name": "精誠",
+    "year": 2026,
+    "brokers": [
+      {
+        "broker": "",
+        "eps": null,
+        "revenue": null,
+        "target_price": null,
+        "rating": "",
+        "report_date": ""
+      },
+      {
+        "broker": "",
+        "eps": null,
+        "revenue": null,
+        "target_price": null,
+        "rating": "",
+        "report_date": ""
+      },
+      {
+        "broker": "",
+        "eps": null,
+        "revenue": null,
+        "target_price": null,
+        "rating": "",
+        "report_date": ""
+      },
+      {
+        "broker": "",
+        "eps": null,
+        "revenue": null,
+        "target_price": null,
+        "rating": "",
+        "report_date": ""
+      },
+      {
+        "broker": "",
+        "eps": null,
+        "revenue": null,
+        "target_price": null,
+        "rating": "",
+        "report_date": ""
+      }
+    ]
+  },
+  "6257": {
+    "name": "矽格",
+    "year": 2026,
+    "brokers": [
+      {
+        "broker": "",
+        "eps": null,
+        "revenue": null,
+        "target_price": null,
+        "rating": "",
+        "report_date": ""
+      },
+      {
+        "broker": "",
+        "eps": null,
+        "revenue": null,
+        "target_price": null,
+        "rating": "",
+        "report_date": ""
+      },
+      {
+        "broker": "",
+        "eps": null,
+        "revenue": null,
+        "target_price": null,
+        "rating": "",
+        "report_date": ""
+      },
+      {
+        "broker": "",
+        "eps": null,
+        "revenue": null,
+        "target_price": null,
+        "rating": "",
+        "report_date": ""
+      },
+      {
+        "broker": "",
+        "eps": null,
+        "revenue": null,
+        "target_price": null,
+        "rating": "",
+        "report_date": ""
+      }
+    ]
+  },
+  "6285": {
+    "name": "啟碁",
+    "year": 2026,
+    "brokers": [
+      {
+        "broker": "",
+        "eps": null,
+        "revenue": null,
+        "target_price": null,
+        "rating": "",
+        "report_date": ""
+      },
+      {
+        "broker": "",
+        "eps": null,
+        "revenue": null,
+        "target_price": null,
+        "rating": "",
+        "report_date": ""
+      },
+      {
+        "broker": "",
+        "eps": null,
+        "revenue": null,
+        "target_price": null,
+        "rating": "",
+        "report_date": ""
+      },
+      {
+        "broker": "",
+        "eps": null,
+        "revenue": null,
+        "target_price": null,
+        "rating": "",
+        "report_date": ""
+      },
+      {
+        "broker": "",
+        "eps": null,
+        "revenue": null,
+        "target_price": null,
+        "rating": "",
+        "report_date": ""
+      }
+    ]
+  },
+  "6643": {
+    "name": "M31",
+    "year": 2026,
+    "brokers": [
+      {
+        "broker": "",
+        "eps": null,
+        "revenue": null,
+        "target_price": null,
+        "rating": "",
+        "report_date": ""
+      },
+      {
+        "broker": "",
+        "eps": null,
+        "revenue": null,
+        "target_price": null,
+        "rating": "",
+        "report_date": ""
+      },
+      {
+        "broker": "",
+        "eps": null,
+        "revenue": null,
+        "target_price": null,
+        "rating": "",
+        "report_date": ""
+      },
+      {
+        "broker": "",
+        "eps": null,
+        "revenue": null,
+        "target_price": null,
+        "rating": "",
+        "report_date": ""
+      },
+      {
+        "broker": "",
+        "eps": null,
+        "revenue": null,
+        "target_price": null,
+        "rating": "",
+        "report_date": ""
+      }
+    ]
+  },
+  "6715": {
+    "name": "嘉基",
+    "year": 2026,
+    "brokers": [
+      {
+        "broker": "",
+        "eps": null,
+        "revenue": null,
+        "target_price": null,
+        "rating": "",
+        "report_date": ""
+      },
+      {
+        "broker": "",
+        "eps": null,
+        "revenue": null,
+        "target_price": null,
+        "rating": "",
+        "report_date": ""
+      },
+      {
+        "broker": "",
+        "eps": null,
+        "revenue": null,
+        "target_price": null,
+        "rating": "",
+        "report_date": ""
+      },
+      {
+        "broker": "",
+        "eps": null,
+        "revenue": null,
+        "target_price": null,
+        "rating": "",
+        "report_date": ""
+      },
+      {
+        "broker": "",
+        "eps": null,
+        "revenue": null,
+        "target_price": null,
+        "rating": "",
+        "report_date": ""
+      }
+    ]
+  },
+  "6781": {
+    "name": "AES-KY",
+    "year": 2026,
+    "brokers": [
+      {
+        "broker": "",
+        "eps": null,
+        "revenue": null,
+        "target_price": null,
+        "rating": "",
+        "report_date": ""
+      },
+      {
+        "broker": "",
+        "eps": null,
+        "revenue": null,
+        "target_price": null,
+        "rating": "",
+        "report_date": ""
+      },
+      {
+        "broker": "",
+        "eps": null,
+        "revenue": null,
+        "target_price": null,
+        "rating": "",
+        "report_date": ""
+      },
+      {
+        "broker": "",
+        "eps": null,
+        "revenue": null,
+        "target_price": null,
+        "rating": "",
+        "report_date": ""
+      },
+      {
+        "broker": "",
+        "eps": null,
+        "revenue": null,
+        "target_price": null,
+        "rating": "",
+        "report_date": ""
+      }
+    ]
+  },
+  "6805": {
+    "name": "富世達",
+    "year": 2026,
+    "brokers": [
+      {
+        "broker": "",
+        "eps": null,
+        "revenue": null,
+        "target_price": null,
+        "rating": "",
+        "report_date": ""
+      },
+      {
+        "broker": "",
+        "eps": null,
+        "revenue": null,
+        "target_price": null,
+        "rating": "",
+        "report_date": ""
+      },
+      {
+        "broker": "",
+        "eps": null,
+        "revenue": null,
+        "target_price": null,
+        "rating": "",
+        "report_date": ""
+      },
+      {
+        "broker": "",
+        "eps": null,
+        "revenue": null,
+        "target_price": null,
+        "rating": "",
+        "report_date": ""
+      },
+      {
+        "broker": "",
+        "eps": null,
+        "revenue": null,
+        "target_price": null,
+        "rating": "",
+        "report_date": ""
+      }
+    ]
+  },
+  "7769": {
+    "name": "鴻勁",
+    "year": 2026,
+    "brokers": [
+      {
+        "broker": "",
+        "eps": null,
+        "revenue": null,
+        "target_price": null,
+        "rating": "",
+        "report_date": ""
+      },
+      {
+        "broker": "",
+        "eps": null,
+        "revenue": null,
+        "target_price": null,
+        "rating": "",
+        "report_date": ""
+      },
+      {
+        "broker": "",
+        "eps": null,
+        "revenue": null,
+        "target_price": null,
+        "rating": "",
+        "report_date": ""
+      },
+      {
+        "broker": "",
+        "eps": null,
+        "revenue": null,
+        "target_price": null,
+        "rating": "",
+        "report_date": ""
+      },
+      {
+        "broker": "",
+        "eps": null,
+        "revenue": null,
+        "target_price": null,
+        "rating": "",
+        "report_date": ""
+      }
+    ]
+  },
+  "1519": {
+    "name": "華城",
+    "year": 2026,
+    "brokers": [
+      {
+        "broker": "",
+        "eps": null,
+        "revenue": null,
+        "target_price": null,
+        "rating": "",
+        "report_date": ""
+      },
+      {
+        "broker": "",
+        "eps": null,
+        "revenue": null,
+        "target_price": null,
+        "rating": "",
+        "report_date": ""
+      },
+      {
+        "broker": "",
+        "eps": null,
+        "revenue": null,
+        "target_price": null,
+        "rating": "",
+        "report_date": ""
+      },
+      {
+        "broker": "",
+        "eps": null,
+        "revenue": null,
+        "target_price": null,
+        "rating": "",
+        "report_date": ""
+      },
+      {
+        "broker": "",
+        "eps": null,
+        "revenue": null,
+        "target_price": null,
+        "rating": "",
+        "report_date": ""
+      }
+    ]
+  },
+  "2345": {
+    "name": "智邦",
+    "year": 2026,
+    "brokers": [
+      { "broker": "群益投顧", "eps": 67.29, "revenue": 340779, "target_price": 3000, "rating": "Buy", "report_date": "2026-05-05" },
+      {
+        "broker": "",
+        "eps": null,
+        "revenue": null,
+        "target_price": null,
+        "rating": "",
+        "report_date": ""
+      },
+      {
+        "broker": "",
+        "eps": null,
+        "revenue": null,
+        "target_price": null,
+        "rating": "",
+        "report_date": ""
+      },
+      {
+        "broker": "",
+        "eps": null,
+        "revenue": null,
+        "target_price": null,
+        "rating": "",
+        "report_date": ""
+      },
+      {
+        "broker": "",
+        "eps": null,
+        "revenue": null,
+        "target_price": null,
+        "rating": "",
+        "report_date": ""
+      }
+    ]
+  },
+  "2368": {
+    "name": "金像電",
+    "year": 2026,
+    "brokers": [
+      { "broker": "Morgan Stanley", "eps": 41.63, "revenue": 97990, "target_price": 1310, "rating": "Overweight", "report_date": "2026-05-12" },
+      { "broker": "中信投顧", "eps": 35.21, "revenue": 91537, "target_price": 1450, "rating": "Buy", "report_date": "2026-03-24" },
+      { "broker": "大和", "eps": 36.20, "revenue": 97635, "target_price": 1380, "rating": "Buy", "report_date": "2026-04-13" },
+      { "broker": "凱基投顧", "eps": 32.82, "revenue": 86893, "target_price": 1100, "rating": "增加持股", "report_date": "2026-03-11" },
+      { "broker": "富邦投顧", "eps": 33.43, "revenue": 89651, "target_price": 1110, "rating": "買進", "report_date": "2026-03-10" }
+    ]
+  },
+  "2382": {
+    "name": "廣達",
+    "year": 2026,
+    "brokers": [
+      {
+        "broker": "",
+        "eps": null,
+        "revenue": null,
+        "target_price": null,
+        "rating": "",
+        "report_date": ""
+      },
+      {
+        "broker": "",
+        "eps": null,
+        "revenue": null,
+        "target_price": null,
+        "rating": "",
+        "report_date": ""
+      },
+      {
+        "broker": "",
+        "eps": null,
+        "revenue": null,
+        "target_price": null,
+        "rating": "",
+        "report_date": ""
+      },
+      {
+        "broker": "",
+        "eps": null,
+        "revenue": null,
+        "target_price": null,
+        "rating": "",
+        "report_date": ""
+      },
+      {
+        "broker": "",
+        "eps": null,
+        "revenue": null,
+        "target_price": null,
+        "rating": "",
+        "report_date": ""
+      }
+    ]
+  },
+  "3363": {
+    "name": "上詮",
+    "year": 2026,
+    "brokers": [
+      {
+        "broker": "",
+        "eps": null,
+        "revenue": null,
+        "target_price": null,
+        "rating": "",
+        "report_date": ""
+      },
+      {
+        "broker": "",
+        "eps": null,
+        "revenue": null,
+        "target_price": null,
+        "rating": "",
+        "report_date": ""
+      },
+      {
+        "broker": "",
+        "eps": null,
+        "revenue": null,
+        "target_price": null,
+        "rating": "",
+        "report_date": ""
+      },
+      {
+        "broker": "",
+        "eps": null,
+        "revenue": null,
+        "target_price": null,
+        "rating": "",
+        "report_date": ""
+      },
+      {
+        "broker": "",
+        "eps": null,
+        "revenue": null,
+        "target_price": null,
+        "rating": "",
+        "report_date": ""
+      }
+    ]
+  },
+  "3680": {
+    "name": "家登",
+    "year": 2026,
+    "brokers": [
+      {
+        "broker": "",
+        "eps": null,
+        "revenue": null,
+        "target_price": null,
+        "rating": "",
+        "report_date": ""
+      },
+      {
+        "broker": "",
+        "eps": null,
+        "revenue": null,
+        "target_price": null,
+        "rating": "",
+        "report_date": ""
+      },
+      {
+        "broker": "",
+        "eps": null,
+        "revenue": null,
+        "target_price": null,
+        "rating": "",
+        "report_date": ""
+      },
+      {
+        "broker": "",
+        "eps": null,
+        "revenue": null,
+        "target_price": null,
+        "rating": "",
+        "report_date": ""
+      },
+      {
+        "broker": "",
+        "eps": null,
+        "revenue": null,
+        "target_price": null,
+        "rating": "",
+        "report_date": ""
+      }
+    ]
+  },
+  "4979": {
+    "name": "華星光",
+    "year": 2026,
+    "brokers": [
+      {
+        "broker": "",
+        "eps": null,
+        "revenue": null,
+        "target_price": null,
+        "rating": "",
+        "report_date": ""
+      },
+      {
+        "broker": "",
+        "eps": null,
+        "revenue": null,
+        "target_price": null,
+        "rating": "",
+        "report_date": ""
+      },
+      {
+        "broker": "",
+        "eps": null,
+        "revenue": null,
+        "target_price": null,
+        "rating": "",
+        "report_date": ""
+      },
+      {
+        "broker": "",
+        "eps": null,
+        "revenue": null,
+        "target_price": null,
+        "rating": "",
+        "report_date": ""
+      },
+      {
+        "broker": "",
+        "eps": null,
+        "revenue": null,
+        "target_price": null,
+        "rating": "",
+        "report_date": ""
+      }
+    ]
+  },
+  "6442": {
+    "name": "光聖",
+    "year": 2026,
+    "brokers": [
+      {
+        "broker": "",
+        "eps": null,
+        "revenue": null,
+        "target_price": null,
+        "rating": "",
+        "report_date": ""
+      },
+      {
+        "broker": "",
+        "eps": null,
+        "revenue": null,
+        "target_price": null,
+        "rating": "",
+        "report_date": ""
+      },
+      {
+        "broker": "",
+        "eps": null,
+        "revenue": null,
+        "target_price": null,
+        "rating": "",
+        "report_date": ""
+      },
+      {
+        "broker": "",
+        "eps": null,
+        "revenue": null,
+        "target_price": null,
+        "rating": "",
+        "report_date": ""
+      },
+      {
+        "broker": "",
+        "eps": null,
+        "revenue": null,
+        "target_price": null,
+        "rating": "",
+        "report_date": ""
+      }
+    ]
+  },
+  "8155": {
+    "name": "博智",
+    "year": 2026,
+    "brokers": [
+      {
+        "broker": "",
+        "eps": null,
+        "revenue": null,
+        "target_price": null,
+        "rating": "",
+        "report_date": ""
+      },
+      {
+        "broker": "",
+        "eps": null,
+        "revenue": null,
+        "target_price": null,
+        "rating": "",
+        "report_date": ""
+      },
+      {
+        "broker": "",
+        "eps": null,
+        "revenue": null,
+        "target_price": null,
+        "rating": "",
+        "report_date": ""
+      },
+      {
+        "broker": "",
+        "eps": null,
+        "revenue": null,
+        "target_price": null,
+        "rating": "",
+        "report_date": ""
+      },
+      {
+        "broker": "",
+        "eps": null,
+        "revenue": null,
+        "target_price": null,
+        "rating": "",
+        "report_date": ""
+      }
+    ]
+  },
+  "2404": {
+    "name": "漢唐",
+    "year": 2026,
+    "brokers": [
+      {
+        "broker": "",
+        "eps": null,
+        "revenue": null,
+        "target_price": null,
+        "rating": "",
+        "report_date": ""
+      },
+      {
+        "broker": "",
+        "eps": null,
+        "revenue": null,
+        "target_price": null,
+        "rating": "",
+        "report_date": ""
+      },
+      {
+        "broker": "",
+        "eps": null,
+        "revenue": null,
+        "target_price": null,
+        "rating": "",
+        "report_date": ""
+      },
+      {
+        "broker": "",
+        "eps": null,
+        "revenue": null,
+        "target_price": null,
+        "rating": "",
+        "report_date": ""
+      },
+      {
+        "broker": "",
+        "eps": null,
+        "revenue": null,
+        "target_price": null,
+        "rating": "",
+        "report_date": ""
+      }
+    ]
+  }
+};
+// ▲▲▲ 券商預估資料結束 ▲▲▲
+const QUARTERS = DATA.quarters;
+const STOCKS = DATA.stocks;
+const LATEST_IDX = QUARTERS.length - 1; // 1Q26
+const YOY_IDX = LATEST_IDX - 4;
+const QOQ_IDX = LATEST_IDX - 1;
+const Y2026_INDICES = QUARTERS.map((q,i) => q.endsWith('26') ? i : -1).filter(i => i >= 0);
+
+const COL = {
+  eps: getComputedStyle(document.documentElement).getPropertyValue('--c-eps').trim() || '#94a3b8',
+  gpm: getComputedStyle(document.documentElement).getPropertyValue('--c-gpm').trim() || '#f97316',
+  opm: getComputedStyle(document.documentElement).getPropertyValue('--c-opm').trim() || '#fbbf24',
+  opx: getComputedStyle(document.documentElement).getPropertyValue('--c-opx').trim() || '#22d3ee',
+  rev: getComputedStyle(document.documentElement).getPropertyValue('--c-rev').trim() || '#818cf8',
+  up: getComputedStyle(document.documentElement).getPropertyValue('--c-up').trim() || '#34d399',
+  down: getComputedStyle(document.documentElement).getPropertyValue('--c-down').trim() || '#fb7185',
+};
+
+let mainChart = null, revChart = null;
+
+// ── helpers (kept identical to overview) ──
+function calcChange(cur, prev) {
+  if (cur == null || prev == null) return { value: null, kind: 'na' };
+  if (prev <= 0 && cur > 0) return { value: cur - prev, kind: 'flip_pos' };
+  if (prev >= 0 && cur < 0) return { value: cur - prev, kind: 'flip_neg' };
+  if (Math.abs(prev) < 0.5) return { value: cur - prev, kind: 'na' };
+  return { value: (cur - prev) / Math.abs(prev) * 100, kind: 'pct' };
+}
+function deltaPP(arr, latestI, yoyI) {
+  const cur = arr[latestI] != null ? arr[latestI] : arr[latestI - 1];
+  const baseI = arr[latestI] != null ? yoyI : yoyI - 1;
+  const prev = arr[baseI];
+  if (cur == null || prev == null) return null;
+  return cur - prev;
+}
+function latestVal(arr) {
+  return arr[LATEST_IDX] != null ? arr[LATEST_IDX] : arr[QOQ_IDX];
+}
+function lastReportedIdx(s) {
+  return s.eps[LATEST_IDX] != null ? LATEST_IDX : (s.eps[QOQ_IDX] != null ? QOQ_IDX : null);
+}
+function fmtPct(v, d=1) { return v == null ? '—' : (v >= 0 ? '+' : '') + v.toFixed(d) + '%'; }
+function fmtPP(v, d=1) { return v == null ? '—' : (v >= 0 ? '+' : '') + v.toFixed(d) + 'pp'; }
+function fmtNum(v, d=2) { return v == null ? '—' : v.toFixed(d); }
+function changeLabel(c, kind) {
+  if (c.kind === 'pct') return { text: fmtPct(c.value), cls: c.value > 0.05 ? 'up' : (c.value < -0.05 ? 'down' : 'flat') };
+  if (c.kind === 'flip_pos') return { text: '轉盈', cls: 'up' };
+  if (c.kind === 'flip_neg') return { text: '轉虧', cls: 'down' };
+  return { text: '—', cls: 'flat' };
+}
+
+// ── URL/stock selection ──
+function getStockId() {
+  const url = new URLSearchParams(window.location.search);
+  return url.get('id') || STOCKS[0].id;
+}
+function setStockId(id) {
+  const url = new URL(window.location.href);
+  url.searchParams.set('id', id);
+  history.replaceState(null, '', url);
+  render(id);
+}
+function populateSelect() {
+  const sel = document.getElementById('stock-select');
+  sel.innerHTML = STOCKS.map(s => `<option value="${s.id}">${s.id} · ${s.name}</option>`).join('');
+  sel.onchange = e => setStockId(e.target.value);
+}
+function setupNav() {
+  document.getElementById('prev-btn').onclick = () => {
+    const cur = document.getElementById('stock-select').value;
+    const i = STOCKS.findIndex(s => s.id === cur);
+    setStockId(STOCKS[(i - 1 + STOCKS.length) % STOCKS.length].id);
+  };
+  document.getElementById('next-btn').onclick = () => {
+    const cur = document.getElementById('stock-select').value;
+    const i = STOCKS.findIndex(s => s.id === cur);
+    setStockId(STOCKS[(i + 1) % STOCKS.length].id);
+  };
+  document.addEventListener('keydown', e => {
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
+    if (e.key === 'ArrowLeft') document.getElementById('prev-btn').click();
+    if (e.key === 'ArrowRight') document.getElementById('next-btn').click();
+  });
+}
+
+// ── KPI rendering ──
+function renderKpi(s) {
+  const fresh = s.eps[LATEST_IDX] != null;
+  const reportedIdx = lastReportedIdx(s);
+  document.getElementById('t-latest').textContent = reportedIdx != null ? QUARTERS[reportedIdx] + (fresh ? '' : '（最新季未公布）') : '無資料';
+
+  // EPS
+  const eC = s.eps[LATEST_IDX];
+  const eQoQ = calcChange(s.eps[LATEST_IDX], s.eps[QOQ_IDX]);
+  const eYoY = calcChange(s.eps[LATEST_IDX], s.eps[YOY_IDX]);
+  const epsEl = document.getElementById('k-eps');
+  if (eC == null) {
+    epsEl.classList.add('na');
+    epsEl.textContent = (s.eps[QOQ_IDX] != null ? s.eps[QOQ_IDX].toFixed(2) + '元' : '—') + ' (前季)';
+  } else {
+    epsEl.classList.remove('na');
+    epsEl.textContent = eC.toFixed(2) + ' 元';
+  }
+  const epsMeta = document.getElementById('k-eps-meta');
+  if (fresh) {
+    const lbl = changeLabel(eYoY);
+    const qlbl = changeLabel(eQoQ);
+    epsMeta.innerHTML = `<span class="pill ${lbl.cls}">YoY ${lbl.text}</span><span class="pill ${qlbl.cls}">QoQ ${qlbl.text}</span><span class="pill new">${QUARTERS[LATEST_IDX]}</span>`;
+  } else {
+    epsMeta.innerHTML = `<span class="pill pending">${QUARTERS[LATEST_IDX]} 未公布</span>`;
+  }
+  // title small bar
+  document.getElementById('t-yoy').textContent = changeLabel(eYoY).text;
+  document.getElementById('t-qoq').textContent = changeLabel(eQoQ).text;
+
+  // Margins
+  function renderMargin(key, elId) {
+    const arr = s[key];
+    const latest = latestVal(arr);
+    const yoy = deltaPP(arr, LATEST_IDX, YOY_IDX);
+    const valEl = document.getElementById(elId);
+    const metaEl = document.getElementById(elId + '-meta');
+    if (latest == null) {
+      valEl.classList.add('na'); valEl.textContent = '不適用';
+      metaEl.innerHTML = ''; return;
+    }
+    valEl.classList.remove('na');
+    valEl.textContent = latest.toFixed(2) + ' %';
+    if (yoy == null) { metaEl.innerHTML = '<span class="pill flat">YoY —</span>'; return; }
+    // For opx (expense ratio), lower is better -> invert the sign for the color
+    const colorVal = key === 'opx' ? -yoy : yoy;
+    const cls = colorVal > 0.05 ? 'up' : (colorVal < -0.05 ? 'down' : 'flat');
+    metaEl.innerHTML = `<span class="pill ${cls}">YoY ${fmtPP(yoy)}</span>`;
+  }
+  renderMargin('gpm', 'k-gpm');
+  renderMargin('opm', 'k-opm');
+  renderMargin('opx', 'k-opx');
+}
+
+// ── Completion rate (FY2026) - EPS + Revenue ──
+function renderCompletion(s) {
+  const fc = FORECASTS[s.id];
+  const subEl = document.getElementById('comp-sub');
+
+  // ── EPS ──
+  const epsReported = Y2026_INDICES.map(i => s.eps[i]).filter(v => v != null);
+  const epsRealized = epsReported.length ? epsReported.reduce((a,b) => a + b, 0) : 0;
+  const epsReportedQ = epsReported.length;
+
+  let epsConsensus = null, epsCount = 0;
+  if (fc) {
+    const arr = fc.brokers.filter(b => b.eps != null).map(b => b.eps);
+    if (arr.length) {
+      epsConsensus = arr.reduce((a,b) => a + b, 0) / arr.length;
+      epsCount = arr.length;
+    }
+  }
+
+  const epsReal = document.getElementById('cs-realized');
+  const epsCons = document.getElementById('cs-consensus');
+  epsReal.textContent = epsReportedQ === 0 ? '—' : epsRealized.toFixed(2) + ' 元';
+  if (epsCount) {
+    epsCons.classList.remove('muted'); epsCons.textContent = epsConsensus.toFixed(2) + ' 元 (' + epsCount + '家共識)';
+  } else {
+    epsCons.classList.add('muted'); epsCons.textContent = '券商未填';
+  }
+
+  const epsFill = document.getElementById('cs-fill');
+  const epsLbl = document.getElementById('cs-pct-label');
+  epsFill.classList.remove('over','low'); epsLbl.classList.remove('over','low');
+  if (epsCount && epsConsensus > 0) {
+    const pct = epsRealized / epsConsensus * 100;
+    epsFill.style.width = Math.max(0, Math.min(100, pct)) + '%';
+    epsLbl.textContent = pct.toFixed(1) + '%';
+    if (pct > 100) { epsFill.classList.add('over'); epsLbl.classList.add('over'); }
+    else if (epsReportedQ >= 1 && pct < epsReportedQ * 25 * 0.7) { epsFill.classList.add('low'); epsLbl.classList.add('low'); }
+  } else {
+    epsFill.style.width = '0%'; epsLbl.textContent = '—';
+  }
+
+  // ── Revenue ──
+  // s.rev is in 千元 (thousands NTD), broker.revenue is in 百萬 (millions NTD)
+  // Convert both to 億 (100M NTD) for unified comparison/display
+  //   千元 → 億 : divide by 100_000
+  //   百萬 → 億 : divide by 100
+  let revRealized = 0, revReportedQ = 0;
+  if (s.rev) {
+    const revReported = Y2026_INDICES.map(i => s.rev[i]).filter(v => v != null);
+    revReportedQ = revReported.length;
+    revRealized = revReported.reduce((a,b) => a + b, 0) / 100000; // 千元 -> 億
+  }
+
+  let revConsensus = null, revCount = 0;
+  if (fc) {
+    const arr = fc.brokers.filter(b => b.revenue != null).map(b => b.revenue);
+    if (arr.length) {
+      revConsensus = arr.reduce((a,b) => a + b, 0) / arr.length / 100; // 百萬 -> 億
+      revCount = arr.length;
+    }
+  }
+
+  const revReal = document.getElementById('rs-realized');
+  const revCons = document.getElementById('rs-consensus');
+  const fmtBillion = v => v.toLocaleString('en-US', { maximumFractionDigits: 0 }) + ' 億';
+  if (!s.rev) {
+    revReal.textContent = '無營收資料';
+    revReal.style.fontSize = '13px'; revReal.style.color = 'var(--text-muted)';
+  } else {
+    revReal.style.fontSize = ''; revReal.style.color = '';
+    revReal.textContent = revReportedQ === 0 ? '—' : fmtBillion(revRealized);
+  }
+  if (revCount) {
+    revCons.classList.remove('muted'); revCons.textContent = fmtBillion(revConsensus) + ' (' + revCount + '家共識)';
+  } else {
+    revCons.classList.add('muted'); revCons.textContent = '券商未填';
+  }
+
+  const revFill = document.getElementById('rs-fill');
+  const revLbl = document.getElementById('rs-pct-label');
+  revFill.classList.remove('over','low'); revLbl.classList.remove('over','low');
+  if (revCount && revConsensus > 0 && s.rev) {
+    const pct = revRealized / revConsensus * 100;
+    revFill.style.width = Math.max(0, Math.min(100, pct)) + '%';
+    revLbl.textContent = pct.toFixed(1) + '%';
+    if (pct > 100) { revFill.classList.add('over'); revLbl.classList.add('over'); }
+    else if (revReportedQ >= 1 && pct < revReportedQ * 25 * 0.7) { revFill.classList.add('low'); revLbl.classList.add('low'); }
+  } else {
+    revFill.style.width = '0%'; revLbl.textContent = '—';
+  }
+
+  // ── Sub label ──
+  if (epsCount || revCount) {
+    subEl.textContent = `FY2026 · ${Math.max(epsCount, revCount)} 家券商共識`;
+  } else {
+    subEl.textContent = 'FY2026 · 待填入券商預估';
+  }
+
+  // ── Annualised projection text (covers both) ──
+  const annDiv = document.getElementById('ann-eps');
+  let txt = '';
+  if (epsReportedQ > 0) {
+    const annEps = epsRealized / epsReportedQ * 4;
+    txt += `若依 ${epsReportedQ} 季平均推估，全年 EPS 約 <b>${annEps.toFixed(2)}</b> 元`;
+    if (epsCount) {
+      const pctVs = (annEps - epsConsensus) / epsConsensus * 100;
+      txt += `（vs 共識 ${epsConsensus.toFixed(2)} 元，<b>${pctVs >= 0 ? '+' : ''}${pctVs.toFixed(1)}%</b>）`;
+    }
+    txt += '。';
+  }
+  if (s.rev && revReportedQ > 0) {
+    const annRev = revRealized / revReportedQ * 4;
+    txt += `<br>全年營收約 <b>${fmtBillion(annRev)}</b>`;
+    if (revCount) {
+      const pctVs = (annRev - revConsensus) / revConsensus * 100;
+      txt += `（vs 共識 ${fmtBillion(revConsensus)}，<b>${pctVs >= 0 ? '+' : ''}${pctVs.toFixed(1)}%</b>）`;
+    }
+    txt += '。';
+  }
+  if (!txt) txt = '本年度尚無已公布的季度資料，無法推估全年數字。';
+  annDiv.innerHTML = txt;
+}
+
+// ── Broker table ──
+function classifyRating(r) {
+  // Returns 'buy' | 'hold' | 'sell' | 'na'
+  if (!r) return 'na';
+  // Order matters: check sell first (some terms like "underweight" contain "weight")
+  if (/賣出|減碼|減持|sell|underperform|underweight|\bUW\b/i.test(r)) return 'sell';
+  if (/買進|加碼|增持|增加持股|逢低買進|逢低承接|buy|outperform|overweight|\bOW\b|top pick|accumulate/i.test(r)) return 'buy';
+  if (/持有|中立|區間|hold|neutral|equal[- ]?weight|\bEW\b|market[- ]?perform|in[- ]?line/i.test(r)) return 'hold';
+  return 'na';
+}
+
+function renderBrokers(s) {
+  const tbody = document.getElementById('brokers-tbody');
+  const fc = FORECASTS[s.id];
+  const slots = (fc && fc.brokers) ? fc.brokers : [];
+  // Always show 5 rows
+  let html = '';
+  for (let i = 0; i < 5; i++) {
+    const b = slots[i] || { broker: '', eps: null, revenue: null, target_price: null, rating: '', report_date: '' };
+    const empty = !b.broker && b.eps == null && b.revenue == null && b.target_price == null;
+    if (empty) {
+      html += `<tr class="empty"><td>— 待填入 —</td><td class="num">—</td><td class="num">—</td><td class="num">—</td><td>—</td><td class="num">—</td></tr>`;
+      continue;
+    }
+    const rcls = classifyRating(b.rating);
+    // Revenue: stored as 百萬 (millions NTD), display as 億 (= millions / 100)
+    const revBillion = b.revenue != null ? b.revenue / 100 : null;
+    html += `<tr>
+      <td>${b.broker || '—'}</td>
+      <td class="num">${b.eps != null ? b.eps.toFixed(2) : '—'}</td>
+      <td class="num">${revBillion != null ? revBillion.toLocaleString('en-US', { maximumFractionDigits: 0 }) : '—'}</td>
+      <td class="num">${b.target_price != null ? b.target_price.toFixed(0) : '—'}</td>
+      <td>${b.rating ? `<span class="rating ${rcls}">${b.rating}</span>` : '<span class="rating na">—</span>'}</td>
+      <td class="num">${b.report_date || '—'}</td>
+    </tr>`;
+  }
+  tbody.innerHTML = html;
+
+  // Stats
+  const filled = slots.filter(b => b.eps != null);
+  const revFilled = slots.filter(b => b.revenue != null);
+  const tpFilled = slots.filter(b => b.target_price != null);
+  const ratings = slots.map(b => b.rating || '').filter(Boolean);
+  let buy = 0, hold = 0, sell = 0;
+  for (const r of ratings) {
+    const c = classifyRating(r);
+    if (c === 'buy') buy++;
+    else if (c === 'hold') hold++;
+    else if (c === 'sell') sell++;
+  }
+  document.getElementById('br-avg').textContent = filled.length ? (filled.reduce((a,b) => a + b.eps, 0) / filled.length).toFixed(2) : '—';
+  document.getElementById('br-range').textContent = filled.length ? `${Math.min(...filled.map(b=>b.eps)).toFixed(2)} — ${Math.max(...filled.map(b=>b.eps)).toFixed(2)}` : '—';
+  document.getElementById('br-rev-avg').textContent = revFilled.length ? (revFilled.reduce((a,b) => a + b.revenue, 0) / revFilled.length / 100).toLocaleString('en-US', { maximumFractionDigits: 0 }) : '—';
+  document.getElementById('br-tp-avg').textContent = tpFilled.length ? (tpFilled.reduce((a,b) => a + b.target_price, 0) / tpFilled.length).toFixed(0) : '—';
+  document.getElementById('br-rating-mix').textContent = ratings.length ? `${buy} / ${hold} / ${sell}` : '—';
+}
+
+// ── Charts ──
+function buildMainChart(s) {
+  if (mainChart) mainChart.destroy();
+  mainChart = new Chart(document.getElementById('main-chart'), {
+    type: 'bar',
+    data: {
+      labels: QUARTERS,
+      datasets: [
+        {
+          type:'bar', label:'EPS', data: s.eps,
+          backgroundColor: s.eps.map(v => v == null ? 'transparent' : (v < 0 ? 'rgba(153,27,27,.65)' : 'rgba(148,163,184,.45)')),
+          borderColor: s.eps.map(v => v == null ? 'transparent' : (v < 0 ? '#991b1b' : COL.eps)),
+          borderWidth: 1, yAxisID:'yEps', order:3,
+        },
+        {
+          type:'line', label:'毛利率', data: s.gpm,
+          borderColor: COL.gpm, backgroundColor: 'rgba(249,115,22,.12)',
+          borderWidth: 3.2, pointRadius: 2.8, pointHoverRadius: 6,
+          pointBackgroundColor: COL.gpm, tension: 0.3, spanGaps: true, fill: true,
+          yAxisID:'yPct', order:0,
+        },
+        {
+          type:'line', label:'營業利益率', data: s.opm,
+          borderColor: COL.opm, backgroundColor: COL.opm + '20',
+          borderWidth: 1.8, pointRadius: 1.5, pointHoverRadius: 5,
+          tension: 0.3, spanGaps: true, yAxisID:'yPct', order:1,
+        },
+        {
+          type:'line', label:'營業費用率', data: s.opx,
+          borderColor: COL.opx, backgroundColor: 'transparent',
+          borderWidth: 1.8, borderDash: [6,4], pointRadius: 0, pointHoverRadius: 4,
+          tension: 0.3, spanGaps: true, yAxisID:'yPct', order:2,
+        },
+      ]
+    },
+    options: {
+      responsive:true, maintainAspectRatio:false,
+      interaction:{ mode:'index', intersect:false },
+      plugins:{
+        legend:{ display:false },
+        tooltip:{
+          backgroundColor:'#161f33', titleColor:'#8899b0', bodyColor:'#dde4f0',
+          borderColor:'#1c2840', borderWidth:1, padding:10,
+          callbacks:{
+            label: ctx => {
+              if (ctx.raw == null) return null;
+              const unit = ctx.dataset.label === 'EPS' ? ' 元' : '%';
+              return ` ${ctx.dataset.label}: ${Number(ctx.raw).toFixed(2)}${unit}`;
+            }
+          }
+        }
+      },
+      scales:{
+        x:{ grid:{ color:'#1c284025' }, ticks:{ color:'#4d6080', font:{ size:10.5 } } },
+        yEps:{ position:'left', grid:{ color:'#1c284025' }, ticks:{ color: COL.eps, font:{ size:10 } },
+               title:{ display:true, text:'EPS (元)', color:'#4d6080', font:{ size:10 } } },
+        yPct:{ position:'right', grid:{ display:false }, ticks:{ color:'#4d6080', font:{ size:10 }, callback: v => v + '%' },
+               title:{ display:true, text:'利潤率 (%)', color:'#4d6080', font:{ size:10 } } },
+      }
+    }
+  });
+}
+
+function buildRevChart(s) {
+  if (revChart) revChart.destroy();
+  // Convert revenue (thousand NTD) to 億 (100M)
+  const revBillion = (s.rev || QUARTERS.map(() => null)).map(v => v == null ? null : v / 100000);
+  // Compute YoY % for each quarter against same quarter previous year
+  const yoy = revBillion.map((v, i) => {
+    if (v == null) return null;
+    const prev = i >= 4 ? revBillion[i - 4] : null;
+    if (prev == null || prev === 0) return null;
+    return (v - prev) / prev * 100;
+  });
+
+  const hasRev = revBillion.some(v => v != null);
+  const noRev = document.getElementById('rev-chart');
+  if (!hasRev) {
+    const ctx = noRev.getContext('2d');
+    ctx.clearRect(0, 0, noRev.width, noRev.height);
+    noRev.parentElement.innerHTML = '<div style="padding:60px 20px;text-align:center;color:var(--text-dim);font-size:13px;">本檔目前無月營收資料來源，無法呈現季度營收走勢。</div>';
+    return;
+  }
+
+  revChart = new Chart(noRev, {
+    type:'bar',
+    data:{
+      labels: QUARTERS,
+      datasets:[
+        {
+          type:'bar', label:'營收 (億元)', data: revBillion,
+          backgroundColor: 'rgba(129,140,248,.5)',
+          borderColor: COL.rev, borderWidth: 1, yAxisID:'yRev', order:2,
+        },
+        {
+          type:'line', label:'YoY %', data: yoy,
+          borderColor: COL.up, backgroundColor: 'rgba(52,211,153,.10)',
+          borderWidth: 2.5, pointRadius: 2.5, pointHoverRadius: 6,
+          pointBackgroundColor: COL.up, tension: 0.3, spanGaps: true, fill: false,
+          yAxisID:'yYoY', order:1,
+        }
+      ]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      interaction:{ mode:'index', intersect:false },
+      plugins:{
+        legend:{ display:false },
+        tooltip:{
+          backgroundColor:'#161f33', titleColor:'#8899b0', bodyColor:'#dde4f0',
+          borderColor:'#1c2840', borderWidth:1, padding:10,
+          callbacks:{
+            label: ctx => {
+              if (ctx.raw == null) return null;
+              if (ctx.dataset.label === 'YoY %') return ` YoY: ${ctx.raw >= 0 ? '+' : ''}${ctx.raw.toFixed(1)}%`;
+              const billion = ctx.raw;
+              if (billion >= 10000) return ` 營收: ${(billion/10000).toFixed(2)} 兆元`;
+              return ` 營收: ${billion.toFixed(1)} 億元`;
+            }
+          }
+        }
+      },
+      scales:{
+        x:{ grid:{ color:'#1c284025' }, ticks:{ color:'#4d6080', font:{ size:10.5 } } },
+        yRev:{ position:'left', grid:{ color:'#1c284025' },
+               ticks:{ color: COL.rev, font:{ size:10 },
+                       callback: v => v >= 10000 ? (v/10000).toFixed(1) + '兆' : v >= 1000 ? (v/1000).toFixed(1) + '千億' : v + '億' } },
+        yYoY:{ position:'right', grid:{ display:false },
+               ticks:{ color: COL.up, font:{ size:10 }, callback: v => v + '%' } },
+      }
+    }
+  });
+}
+
+// ── master render ──
+function render(id) {
+  const s = STOCKS.find(x => x.id === id);
+  if (!s) { id = STOCKS[0].id; return render(id); }
+
+  document.getElementById('stock-select').value = id;
+  document.getElementById('t-id').textContent = id;
+  document.getElementById('t-name').textContent = s.name;
+  document.getElementById('bc-stock').textContent = `${id} ${s.name}`;
+  document.title = `${id} ${s.name} · 個股分析`;
+
+  renderKpi(s);
+  renderCompletion(s);
+  renderBrokers(s);
+  buildMainChart(s);
+  // Revenue chart needs DOM cleared if previously replaced
+  let canvas = document.getElementById('rev-chart');
+  if (!canvas) {
+    const host = document.querySelectorAll('.chart-host')[1];
+    host.innerHTML = '<canvas id="rev-chart" class="rev"></canvas>';
+  }
+  buildRevChart(s);
+}
+
+// ── bootstrap ──
+populateSelect();
+setupNav();
+render(getStockId());
+</script>
+</body>
+</html>
