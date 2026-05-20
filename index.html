@@ -28,6 +28,10 @@
     --chip-accent2: #2dd4bf;
     --chip-glow: rgba(167, 139, 250, 0.18);
 
+    --earn-accent: #34d399;
+    --earn-accent2: #22d3ee;
+    --earn-glow: rgba(52, 211, 153, 0.18);
+
     --mono: 'IBM Plex Mono', monospace;
     --sans: 'IBM Plex Sans TC', sans-serif;
   }
@@ -171,6 +175,11 @@
     --card-accent2: var(--chip-accent2);
     --card-glow: var(--chip-glow);
   }
+  .card-earn {
+    --card-accent: var(--earn-accent);
+    --card-accent2: var(--earn-accent2);
+    --card-glow: var(--earn-glow);
+  }
 
   .card-head {
     display: flex;
@@ -292,11 +301,11 @@
       <div class="brand-mark">▣</div>
       <h1>STOCK TOOLS</h1>
     </div>
-    <p class="subtitle">持股分析工具集 ｜ 月營收追蹤、MACD 技術指標、籌碼觀察</p>
+    <p class="subtitle">持股分析工具集 ｜ 月營收追蹤、季度獲利、MACD 技術指標、籌碼觀察</p>
     <div class="meta-bar">
       <span><span class="dot"></span>ONLINE</span>
       <span>STATIC · NO SERVER</span>
-      <span>v1.1</span>
+      <span>v1.2</span>
     </div>
   </header>
 
@@ -326,9 +335,31 @@
       </div>
     </a>
 
+    <a href="tools/quarterly-earnings.html" class="card card-earn">
+      <div class="card-head">
+        <div class="card-num">02 / FUNDAMENTAL</div>
+        <div class="card-tag">基本面</div>
+      </div>
+      <div class="card-title">季度獲利追蹤儀表板</div>
+      <div class="card-sub">QUARTERLY EPS · MARGINS · YoY</div>
+      <div class="card-desc">
+        追蹤 34 檔持股 1Q23 起逐季 EPS、毛利率、營業利益率與費用率，YoY 變化、轉盈/轉虧自動判別，多排序協助挑出獲利動能最強的標的。
+      </div>
+      <div class="card-features">
+        <span class="feat">34 檔持股</span>
+        <span class="feat">EPS YoY</span>
+        <span class="feat">轉盈/轉虧</span>
+        <span class="feat">利潤率比較</span>
+      </div>
+      <div class="card-foot">
+        <span class="card-cta">開啟工具</span>
+        <span class="card-arrow">→</span>
+      </div>
+    </a>
+
     <a href="tools/macd.html" class="card card-macd">
       <div class="card-head">
-        <div class="card-num">02 / TECHNICAL</div>
+        <div class="card-num">03 / TECHNICAL</div>
         <div class="card-tag">技術面</div>
       </div>
       <div class="card-title">MACD 持股分析儀表板</div>
@@ -350,7 +381,7 @@
 
     <a href="tools/chip_tool.html" class="card card-chip">
       <div class="card-head">
-        <div class="card-num">03 / CHIP</div>
+        <div class="card-num">04 / CHIP</div>
         <div class="card-tag">籌碼面</div>
       </div>
       <div class="card-title">籌碼觀察工具</div>
