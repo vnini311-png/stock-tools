@@ -273,6 +273,7 @@
   .badge-new { background: rgba(74,158,255,0.12); color: var(--blue); border: 1px solid rgba(74,158,255,0.25); margin-left: 5px; }
 
   .code-cell { color: #fff; font-weight: 600; }
+  .code-cell .stock-name { color: var(--text2); font-weight: 400; margin-left: 6px; font-family: var(--sans); }
 
   /* ── MODAL ── */
   .modal-bg {
@@ -473,7 +474,7 @@
       <option value="hist_up">柱狀擴大</option>
       <option value="hist_dn">柱狀縮小</option>
     </select>
-    <input type="text" id="filterSearch" placeholder="搜尋代號...">
+    <input type="text" id="filterSearch" placeholder="搜尋代號或名稱...">
     <span class="count-label" id="countLabel"></span>
   </div>
   <div class="tbl-wrap">
@@ -670,7 +671,7 @@ function renderTable(data) {
   const tb = document.getElementById('tbody');
   tb.innerHTML = data.map(d => `
     <tr onclick="openModal('${d.code}')">
-      <td class="code-cell">${d.code}</td>
+      <td class="code-cell">${d.code}${d.name ? `<span class="stock-name">${d.name}</span>` : ''}</td>
       <td>${d.close.toFixed(2)}</td>
       <td class="${d.macd >= 0 ? 'bull' : 'bear'}">${d.macd.toFixed(4)}</td>
       <td class="${d.signal >= 0 ? 'bull' : 'bear'}">${d.signal.toFixed(4)}</td>
@@ -698,7 +699,7 @@ function applyFilters() {
     if (sig === 'dead'   && !d.dead)   return false;
     if (sig === 'hist_up' && d.hist_dir !== '擴大') return false;
     if (sig === 'hist_dn' && d.hist_dir !== '縮小') return false;
-    if (q && !d.code.toUpperCase().includes(q)) return false;
+    if (q && !d.code.toUpperCase().includes(q) && !(d.name || '').toUpperCase().includes(q)) return false;
     return true;
   });
   sortAndRender();
