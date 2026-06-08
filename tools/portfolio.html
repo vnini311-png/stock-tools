@@ -276,6 +276,94 @@
   .panel { display: none; }
   .panel.active { display: block; }
 
+  /* ── INDUSTRY STRIP ── */
+  .ind-strip {
+    margin-bottom: 28px;
+  }
+  .ind-strip-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 10px;
+  }
+  .ind-strip-head .label {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text-dim);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+  .ind-strip-head .reset {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text-muted);
+    background: none;
+    border: none;
+    cursor: pointer;
+    display: none;
+  }
+  .ind-strip-head .reset.active { display: inline-block; color: var(--port-accent); }
+  .ind-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .ind-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 10px;
+    border-radius: 6px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    font-family: var(--mono);
+    font-size: 11.5px;
+    color: var(--text);
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .ind-chip:hover { border-color: var(--ind-color, var(--port-accent)); }
+  .ind-chip.active { background: var(--ind-glow, var(--port-glow)); border-color: var(--ind-color, var(--port-accent)); }
+  .ind-chip .dot {
+    width: 8px; height: 8px;
+    border-radius: 2px;
+    background: var(--ind-color, var(--text-muted));
+  }
+  .ind-chip .pct {
+    color: var(--text-muted);
+    font-size: 10.5px;
+    margin-left: 2px;
+  }
+  .ind-chip.active .pct { color: var(--ind-color); }
+
+  /* 產業 tag (表格內) */
+  .ind-tag {
+    display: inline-block;
+    padding: 2px 7px;
+    border-radius: 3px;
+    font-family: var(--mono);
+    font-size: 10.5px;
+    letter-spacing: 0.02em;
+    background: var(--ind-glow);
+    color: var(--ind-color);
+    border: 1px solid var(--ind-color);
+  }
+
+  /* 產業色票 (CSS variable via data attr) */
+  [data-ind="semi"]        { --ind-color: #4f8ef7; --ind-glow: rgba(79,142,247,0.12); }
+  [data-ind="component"]   { --ind-color: #22d3ee; --ind-glow: rgba(34,211,238,0.12); }
+  [data-ind="network"]     { --ind-color: #a78bfa; --ind-glow: rgba(167,139,250,0.12); }
+  [data-ind="optical"]     { --ind-color: #f472b6; --ind-glow: rgba(244,114,182,0.12); }
+  [data-ind="pc"]          { --ind-color: #f5a623; --ind-glow: rgba(245,166,35,0.12); }
+  [data-ind="distribution"]{ --ind-color: #fbbf24; --ind-glow: rgba(251,191,36,0.12); }
+  [data-ind="finance"]     { --ind-color: #34d399; --ind-glow: rgba(52,211,153,0.12); }
+  [data-ind="biotech"]     { --ind-color: #ec4899; --ind-glow: rgba(236,72,153,0.12); }
+  [data-ind="retail"]      { --ind-color: #fb923c; --ind-glow: rgba(251,146,60,0.12); }
+  [data-ind="it"]          { --ind-color: #818cf8; --ind-glow: rgba(129,140,248,0.12); }
+  [data-ind="engineering"] { --ind-color: #fcd34d; --ind-glow: rgba(252,211,77,0.12); }
+  [data-ind="etf"]         { --ind-color: #94a3b8; --ind-glow: rgba(148,163,184,0.12); }
+  [data-ind="other"]       { --ind-color: #6b7a96; --ind-glow: rgba(107,122,150,0.12); }
+
   /* ── KPI STRIP ── */
   .kpi-strip {
     display: grid;
@@ -630,6 +718,15 @@
     <!-- KPI strip -->
     <div class="kpi-strip" id="kpi-strip"></div>
 
+    <!-- Industry distribution -->
+    <div class="ind-strip" id="ind-strip">
+      <div class="ind-strip-head">
+        <span class="label">產業分佈 · INDUSTRY EXPOSURE</span>
+        <button class="reset" id="ind-reset">✕ 取消篩選</button>
+      </div>
+      <div class="ind-chips" id="ind-chips"></div>
+    </div>
+
     <!-- Tabs -->
     <div class="tabs">
       <button class="tab active" data-panel="holdings">持股總覽<span class="badge" id="tab-holdings-count">0</span></button>
@@ -649,6 +746,7 @@
         <table id="holdings-table">
           <thead><tr>
             <th data-sort="name">名稱</th>
+            <th data-sort="industry">產業</th>
             <th class="num" data-sort="shares">股數</th>
             <th class="num" data-sort="avgCost">平均成本</th>
             <th class="num" data-sort="currentPrice">現價</th>
@@ -822,6 +920,24 @@
           <input type="number" id="h-price" min="0" step="0.01" required>
         </div>
         <div class="field">
+          <label>產業 (選填)</label>
+          <select id="h-industry">
+            <option value="">未分類</option>
+            <option value="半導體">半導體</option>
+            <option value="電子零組件">電子零組件</option>
+            <option value="網通">網通</option>
+            <option value="光電">光電</option>
+            <option value="電腦週邊">電腦週邊</option>
+            <option value="電子通路">電子通路</option>
+            <option value="金融">金融</option>
+            <option value="生技">生技</option>
+            <option value="百貨">百貨</option>
+            <option value="資服">資服</option>
+            <option value="工程">工程</option>
+            <option value="ETF">ETF</option>
+          </select>
+        </div>
+        <div class="field full">
           <label>備註 (選填)</label>
           <input type="text" id="h-note">
         </div>
@@ -996,6 +1112,16 @@ const ENC_PATH = '../data/trades.enc';
 let password = null;
 let state = null;
 let dirty = false;
+let industryFilter = null;
+
+// 產業中文名 → CSS data-ind key
+const INDUSTRY_KEY = {
+  '半導體': 'semi', '電子零組件': 'component', '網通': 'network',
+  '光電': 'optical', '電腦週邊': 'pc', '電子通路': 'distribution',
+  '金融': 'finance', '生技': 'biotech', '百貨': 'retail',
+  '資服': 'it', '工程': 'engineering', 'ETF': 'etf'
+};
+function indKey(name) { return INDUSTRY_KEY[name] || 'other'; }
 
 function defaultState() {
   return {
@@ -1210,6 +1336,7 @@ function renderHoldings(k) {
   const search = document.getElementById('hold-search').value.toLowerCase().trim();
   let rows = k.holds.map(h => ({ ...h, weight: k.totalMv > 0 ? h.marketValue / k.totalMv : 0 }));
   if (search) rows = rows.filter(h => (h.name || '').toLowerCase().includes(search) || (h.code || '').toLowerCase().includes(search));
+  if (industryFilter) rows = rows.filter(h => (h.industry || '') === industryFilter);
 
   rows.sort((a, b) => {
     const av = a[holdSort.key], bv = b[holdSort.key];
@@ -1220,14 +1347,17 @@ function renderHoldings(k) {
   const tbody = document.getElementById('holdings-body');
   document.getElementById('holdings-count').textContent = rows.length;
   if (!rows.length) {
-    tbody.innerHTML = `<tr><td colspan="10" class="empty">尚無持股 — 點上方「+ 持股」新增</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="11" class="empty">${industryFilter ? '此產業沒有持股' : '尚無持股 — 點上方「+ 持股」新增'}</td></tr>`;
   } else {
     tbody.innerHTML = rows.map(h => {
       const upCls = h.unrealizedPnl > 0 ? 'gain-text' : (h.unrealizedPnl < 0 ? 'loss-text' : '');
       const staleCls = isStale(h.priceUpdatedAt) ? 'stale' : '';
+      const ind = h.industry || '';
+      const indTag = ind ? `<span class="ind-tag" data-ind="${indKey(ind)}">${escapeHtml(ind)}</span>` : '';
       return `
         <tr data-id="${h.id}">
           <td class="name-cell">${escapeHtml(h.name)}${h.code ? `<span class="code-cell">${escapeHtml(h.code)}</span>` : ''}</td>
+          <td>${indTag}</td>
           <td class="num">${fmt.int(h.shares)}</td>
           <td class="num">${fmt.num(h.avgCost, 2)}</td>
           <td class="num"><input type="number" class="inline-price" data-hid="${h.id}" value="${h.currentPrice}" step="0.01"></td>
@@ -1335,10 +1465,40 @@ function renderSortIndicators() {
   });
 }
 
+function renderIndustryStrip(k) {
+  const groups = {};
+  k.holds.forEach(h => {
+    const ind = h.industry || '其他';
+    if (!groups[ind]) groups[ind] = { mv: 0, cost: 0, count: 0 };
+    groups[ind].mv += h.marketValue;
+    groups[ind].cost += h.costValue;
+    groups[ind].count++;
+  });
+  const totalMv = k.totalMv || 1;
+  const sorted = Object.entries(groups).sort((a, b) => b[1].mv - a[1].mv);
+  const html = sorted.map(([name, g]) => {
+    const pct = (g.mv / totalMv * 100).toFixed(1);
+    const active = industryFilter === name ? 'active' : '';
+    return `<button class="ind-chip ${active}" data-ind="${indKey(name)}" data-industry="${escapeHtml(name)}">
+      <span class="dot"></span>${escapeHtml(name)} <span class="pct">${pct}%</span>
+    </button>`;
+  }).join('');
+  document.getElementById('ind-chips').innerHTML = html;
+  document.getElementById('ind-reset').classList.toggle('active', !!industryFilter);
+  document.querySelectorAll('.ind-chip').forEach(c => {
+    c.addEventListener('click', () => {
+      const ind = c.dataset.industry;
+      industryFilter = (industryFilter === ind) ? null : ind;
+      renderAll();
+    });
+  });
+}
+
 function renderAll() {
   document.getElementById('year-label').textContent = state.year || new Date().getFullYear();
   const k = computeKpi();
   renderKpi(k);
+  renderIndustryStrip(k);
   renderHoldings(k);
   renderTrades();
   renderSortIndicators();
@@ -1471,6 +1631,7 @@ function openHoldingModal(id) {
   document.getElementById('h-shares').value = h ? h.shares : '';
   document.getElementById('h-avg-cost').value = h ? h.avgCost : '';
   document.getElementById('h-price').value = h ? h.currentPrice : '';
+  document.getElementById('h-industry').value = h ? (h.industry || '') : '';
   document.getElementById('h-note').value = h ? (h.note || '') : '';
   document.getElementById('h-delete').style.display = h ? 'inline-block' : 'none';
   document.getElementById('modal-holding').classList.add('active');
@@ -1492,6 +1653,7 @@ document.getElementById('holding-form').addEventListener('submit', e => {
   }
   h.currentPrice = newPrice;
   if (!h.priceUpdatedAt) h.priceUpdatedAt = new Date().toISOString();
+  h.industry = document.getElementById('h-industry').value;
   h.note = document.getElementById('h-note').value.trim();
 
   if (!isEdit) state.holdings.push(h);
@@ -1696,6 +1858,12 @@ document.querySelectorAll('.modal-bg').forEach(bg => {
 });
 document.addEventListener('keydown', e => {
   if (e.key === 'Escape') document.querySelectorAll('.modal-bg.active').forEach(bg => bg.classList.remove('active'));
+});
+
+// ─────────────────── INDUSTRY RESET ───────────────────
+document.getElementById('ind-reset').addEventListener('click', () => {
+  industryFilter = null;
+  renderAll();
 });
 
 // ─────────────────── TABS ───────────────────
