@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>個人交易記錄 · Portfolio</title>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+TC:wght@300;400;500;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <style>
   :root {
     --bg: #0a0d14;
@@ -524,6 +525,84 @@
   }
   .stale { color: #fbbf24; }
 
+  /* ── PIE CHART ── */
+  .chart-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 28px;
+    margin-top: 24px;
+  }
+  .chart-card-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 18px;
+    padding-bottom: 14px;
+    border-bottom: 1px solid var(--border);
+  }
+  .chart-card-head h3 {
+    font-family: var(--mono);
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text);
+  }
+  .chart-card-head .total {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--text-muted);
+  }
+  .chart-card-head .total b {
+    color: var(--text);
+    font-weight: 600;
+  }
+  .chart-wrap {
+    display: grid;
+    grid-template-columns: minmax(280px, 1fr) minmax(260px, 1fr);
+    gap: 32px;
+    align-items: center;
+  }
+  .chart-canvas-wrap {
+    position: relative;
+    max-width: 360px;
+    margin: 0 auto;
+    width: 100%;
+  }
+  .chart-legend {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .legend-row {
+    display: grid;
+    grid-template-columns: 14px 1fr auto auto;
+    gap: 10px;
+    align-items: center;
+    padding: 8px 12px;
+    border-radius: 6px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    font-family: var(--mono);
+    font-size: 12px;
+    cursor: pointer;
+    transition: border-color 0.15s;
+  }
+  .legend-row:hover { border-color: var(--ind-color); }
+  .legend-row.active { background: var(--ind-glow); border-color: var(--ind-color); }
+  .legend-row .swatch {
+    width: 12px; height: 12px;
+    border-radius: 3px;
+    background: var(--ind-color);
+  }
+  .legend-row .ind-name { color: var(--text); }
+  .legend-row .mv { color: var(--text-muted); text-align: right; }
+  .legend-row .pct { color: var(--ind-color); text-align: right; font-weight: 600; min-width: 50px; }
+  @media (max-width: 720px) {
+    .chart-wrap { grid-template-columns: 1fr; }
+  }
+
   /* ── MODAL ── */
   .modal-bg {
     position: fixed;
@@ -761,6 +840,20 @@
         </table>
       </div>
     </section>
+
+    <!-- 產業派圖 -->
+    <div class="chart-card">
+      <div class="chart-card-head">
+        <h3>產業分佈 · INDUSTRY ALLOCATION</h3>
+        <div class="total">總市值 <b id="chart-total">—</b></div>
+      </div>
+      <div class="chart-wrap">
+        <div class="chart-canvas-wrap">
+          <canvas id="industry-pie"></canvas>
+        </div>
+        <div class="chart-legend" id="industry-legend"></div>
+      </div>
+    </div>
     </div>
 
     <!-- Trades panel -->
@@ -1121,7 +1214,14 @@ const INDUSTRY_KEY = {
   '金融': 'finance', '生技': 'biotech', '百貨': 'retail',
   '資服': 'it', '工程': 'engineering', 'ETF': 'etf'
 };
+const IND_COLORS = {
+  semi: '#4f8ef7', component: '#22d3ee', network: '#a78bfa',
+  optical: '#f472b6', pc: '#f5a623', distribution: '#fbbf24',
+  finance: '#34d399', biotech: '#ec4899', retail: '#fb923c',
+  it: '#818cf8', engineering: '#fcd34d', etf: '#94a3b8', other: '#6b7a96'
+};
 function indKey(name) { return INDUSTRY_KEY[name] || 'other'; }
+function indColor(name) { return IND_COLORS[indKey(name)]; }
 
 function defaultState() {
   return {
@@ -1494,11 +1594,104 @@ function renderIndustryStrip(k) {
   });
 }
 
+let pieChart = null;
+function renderPieChart(k) {
+  const groups = {};
+  k.holds.forEach(h => {
+    const ind = h.industry || '其他';
+    groups[ind] = (groups[ind] || 0) + h.marketValue;
+  });
+  const sorted = Object.entries(groups).sort((a, b) => b[1] - a[1]);
+  const labels = sorted.map(x => x[0]);
+  const data = sorted.map(x => x[1]);
+  const colors = labels.map(l => indColor(l));
+  const total = data.reduce((a, b) => a + b, 0);
+
+  document.getElementById('chart-total').textContent = fmt.int(total);
+
+  // 派圖
+  const ctx = document.getElementById('industry-pie');
+  if (pieChart) pieChart.destroy();
+  if (typeof Chart === 'undefined') return;  // Chart.js 還沒載入
+  pieChart = new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+      labels,
+      datasets: [{
+        data,
+        backgroundColor: colors,
+        borderColor: '#0a0d14',
+        borderWidth: 2,
+        hoverBorderColor: '#fff',
+        hoverBorderWidth: 2,
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: true,
+      cutout: '58%',
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: '#161f33',
+          borderColor: '#2a3651',
+          borderWidth: 1,
+          titleColor: '#fff',
+          bodyColor: '#dde4f0',
+          titleFont: { family: 'IBM Plex Mono', size: 13 },
+          bodyFont: { family: 'IBM Plex Mono', size: 12 },
+          padding: 10,
+          displayColors: true,
+          boxWidth: 10,
+          boxHeight: 10,
+          callbacks: {
+            label: (c) => {
+              const v = c.parsed;
+              const pct = (v / total * 100).toFixed(2);
+              return `  ${fmt.int(v)}  (${pct}%)`;
+            }
+          }
+        }
+      },
+      onClick: (e, els) => {
+        if (!els.length) return;
+        const idx = els[0].index;
+        const ind = labels[idx];
+        industryFilter = (industryFilter === ind) ? null : ind;
+        renderAll();
+      }
+    }
+  });
+
+  // 圖例（右側）
+  const legendHtml = sorted.map(([name, mv]) => {
+    const pct = (mv / total * 100).toFixed(1);
+    const active = industryFilter === name ? 'active' : '';
+    return `
+      <div class="legend-row ${active}" data-ind="${indKey(name)}" data-industry="${escapeHtml(name)}">
+        <div class="swatch"></div>
+        <div class="ind-name">${escapeHtml(name)}</div>
+        <div class="mv">${fmt.int(mv)}</div>
+        <div class="pct">${pct}%</div>
+      </div>
+    `;
+  }).join('');
+  document.getElementById('industry-legend').innerHTML = legendHtml;
+  document.querySelectorAll('#industry-legend .legend-row').forEach(row => {
+    row.addEventListener('click', () => {
+      const ind = row.dataset.industry;
+      industryFilter = (industryFilter === ind) ? null : ind;
+      renderAll();
+    });
+  });
+}
+
 function renderAll() {
   document.getElementById('year-label').textContent = state.year || new Date().getFullYear();
   const k = computeKpi();
   renderKpi(k);
   renderIndustryStrip(k);
+  renderPieChart(k);
   renderHoldings(k);
   renderTrades();
   renderSortIndicators();
