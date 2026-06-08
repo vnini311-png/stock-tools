@@ -1,0 +1,16 @@
+# macOS
+.DS_Store
+
+# 私密資料 - 絕對不能 commit
+Investment performance/
+initial-state.json
+*.json.local
+
+# 本機開發
+server.py
+*.plist
+*.log
+
+# 舊版本 / 備份
+index-V0.html
+*.bak

@@ -20,6 +20,11 @@
   .header-left h1{font-family:'Space Mono',monospace;font-size:17px;font-weight:700;
     background:linear-gradient(90deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
   .header-left p{font-size:11px;color:var(--text-muted);margin-top:3px;letter-spacing:.4px;}
+  .header-left-wrap{display:flex;align-items:center;}
+  .back-btn{display:inline-flex;align-items:center;gap:5px;padding:5px 11px;margin-right:14px;
+    background:var(--surface);border:1px solid var(--border);border-radius:5px;color:var(--text-muted);
+    font-size:11px;text-decoration:none;font-family:'Noto Sans TC',sans-serif;transition:all .15s;white-space:nowrap;}
+  .back-btn:hover{border-color:var(--accent);color:var(--accent);background:rgba(79,142,247,.1);}
   .legend-bar{display:flex;gap:14px;align-items:center;flex-wrap:wrap;}
   .legend-item{display:flex;align-items:center;gap:6px;font-size:11px;font-weight:500;color:var(--text-muted);}
   .dot{width:10px;height:10px;border-radius:50%;}
@@ -66,9 +71,12 @@
 </head>
 <body>
   <div class="header">
-    <div class="header-left">
-      <h1>報酬 vs 波動 · 落點分析</h1>
-      <p id="subtitle">持股組合 38 檔 vs 加權指數 · YTD 2026 · 資料截止 2026-06-08</p>
+    <div class="header-left-wrap">
+      <a href="../index.html" class="back-btn" title="返回工具列">← 工具列</a>
+      <div class="header-left">
+        <h1>報酬 vs 波動 · 落點分析</h1>
+        <p id="subtitle">持股組合 38 檔 vs 加權指數 · YTD 2026 · 資料截止 2026-06-08</p>
+      </div>
     </div>
     <div class="legend-bar">
       <span class="legend-item"><span class="dot" style="background:var(--green)"></span>贏大盤·低波動</span>
