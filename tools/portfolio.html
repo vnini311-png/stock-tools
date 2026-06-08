@@ -351,19 +351,20 @@
   }
 
   /* 產業色票 (CSS variable via data attr) */
-  [data-ind="semi"]        { --ind-color: #4f8ef7; --ind-glow: rgba(79,142,247,0.12); }
-  [data-ind="component"]   { --ind-color: #22d3ee; --ind-glow: rgba(34,211,238,0.12); }
-  [data-ind="network"]     { --ind-color: #a78bfa; --ind-glow: rgba(167,139,250,0.12); }
-  [data-ind="optical"]     { --ind-color: #f472b6; --ind-glow: rgba(244,114,182,0.12); }
-  [data-ind="pc"]          { --ind-color: #f5a623; --ind-glow: rgba(245,166,35,0.12); }
-  [data-ind="distribution"]{ --ind-color: #fbbf24; --ind-glow: rgba(251,191,36,0.12); }
-  [data-ind="finance"]     { --ind-color: #34d399; --ind-glow: rgba(52,211,153,0.12); }
-  [data-ind="biotech"]     { --ind-color: #ec4899; --ind-glow: rgba(236,72,153,0.12); }
-  [data-ind="retail"]      { --ind-color: #fb923c; --ind-glow: rgba(251,146,60,0.12); }
-  [data-ind="it"]          { --ind-color: #818cf8; --ind-glow: rgba(129,140,248,0.12); }
-  [data-ind="engineering"] { --ind-color: #fcd34d; --ind-glow: rgba(252,211,77,0.12); }
-  [data-ind="etf"]         { --ind-color: #94a3b8; --ind-glow: rgba(148,163,184,0.12); }
-  [data-ind="other"]       { --ind-color: #6b7a96; --ind-glow: rgba(107,122,150,0.12); }
+  [data-ind="semi"]     { --ind-color: #4f8ef7; --ind-glow: rgba(79,142,247,0.12); }
+  [data-ind="memory"]   { --ind-color: #38bdf8; --ind-glow: rgba(56,189,248,0.12); }
+  [data-ind="pcb"]      { --ind-color: #84cc16; --ind-glow: rgba(132,204,22,0.12); }
+  [data-ind="thermal"]  { --ind-color: #ef4444; --ind-glow: rgba(239,68,68,0.12); }
+  [data-ind="power"]    { --ind-color: #f59e0b; --ind-glow: rgba(245,158,11,0.12); }
+  [data-ind="network"]  { --ind-color: #a78bfa; --ind-glow: rgba(167,139,250,0.12); }
+  [data-ind="leo"]      { --ind-color: #06b6d4; --ind-glow: rgba(6,182,212,0.12); }
+  [data-ind="cpo"]      { --ind-color: #ec4899; --ind-glow: rgba(236,72,153,0.12); }
+  [data-ind="aiserver"] { --ind-color: #fcd34d; --ind-glow: rgba(252,211,77,0.12); }
+  [data-ind="passive"]  { --ind-color: #22d3ee; --ind-glow: rgba(34,211,238,0.12); }
+  [data-ind="fab"]      { --ind-color: #14b8a6; --ind-glow: rgba(20,184,166,0.12); }
+  [data-ind="nontech"]  { --ind-color: #94a3b8; --ind-glow: rgba(148,163,184,0.12); }
+  [data-ind="market"]   { --ind-color: #818cf8; --ind-glow: rgba(129,140,248,0.12); }
+  [data-ind="other"]    { --ind-color: #6b7a96; --ind-glow: rgba(107,122,150,0.12); }
 
   /* ── KPI STRIP ── */
   .kpi-strip {
@@ -1017,17 +1018,18 @@
           <select id="h-industry">
             <option value="">未分類</option>
             <option value="半導體">半導體</option>
-            <option value="電子零組件">電子零組件</option>
+            <option value="記憶體">記憶體</option>
+            <option value="PCB">PCB</option>
+            <option value="散熱">散熱</option>
+            <option value="電源">電源</option>
             <option value="網通">網通</option>
-            <option value="光電">光電</option>
-            <option value="電腦週邊">電腦週邊</option>
-            <option value="電子通路">電子通路</option>
-            <option value="金融">金融</option>
-            <option value="生技">生技</option>
-            <option value="百貨">百貨</option>
-            <option value="資服">資服</option>
-            <option value="工程">工程</option>
-            <option value="ETF">ETF</option>
+            <option value="低軌衛星">低軌衛星</option>
+            <option value="CPO">CPO</option>
+            <option value="AI伺服器組裝">AI伺服器組裝</option>
+            <option value="被動元件">被動元件</option>
+            <option value="台積電廠務">台積電廠務</option>
+            <option value="Non-Tech">Non-Tech</option>
+            <option value="大盤">大盤</option>
           </select>
         </div>
         <div class="field full">
@@ -1209,16 +1211,16 @@ let industryFilter = null;
 
 // 產業中文名 → CSS data-ind key
 const INDUSTRY_KEY = {
-  '半導體': 'semi', '電子零組件': 'component', '網通': 'network',
-  '光電': 'optical', '電腦週邊': 'pc', '電子通路': 'distribution',
-  '金融': 'finance', '生技': 'biotech', '百貨': 'retail',
-  '資服': 'it', '工程': 'engineering', 'ETF': 'etf'
+  '半導體': 'semi', '記憶體': 'memory', 'PCB': 'pcb', '散熱': 'thermal',
+  '電源': 'power', '網通': 'network', '低軌衛星': 'leo', 'CPO': 'cpo',
+  'AI伺服器組裝': 'aiserver', '被動元件': 'passive', '台積電廠務': 'fab',
+  'Non-Tech': 'nontech', '大盤': 'market'
 };
 const IND_COLORS = {
-  semi: '#4f8ef7', component: '#22d3ee', network: '#a78bfa',
-  optical: '#f472b6', pc: '#f5a623', distribution: '#fbbf24',
-  finance: '#34d399', biotech: '#ec4899', retail: '#fb923c',
-  it: '#818cf8', engineering: '#fcd34d', etf: '#94a3b8', other: '#6b7a96'
+  semi: '#4f8ef7', memory: '#38bdf8', pcb: '#84cc16', thermal: '#ef4444',
+  power: '#f59e0b', network: '#a78bfa', leo: '#06b6d4', cpo: '#ec4899',
+  aiserver: '#fcd34d', passive: '#22d3ee', fab: '#14b8a6',
+  nontech: '#94a3b8', market: '#818cf8', other: '#6b7a96'
 };
 function indKey(name) { return INDUSTRY_KEY[name] || 'other'; }
 function indColor(name) { return IND_COLORS[indKey(name)]; }
