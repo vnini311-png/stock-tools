@@ -154,6 +154,11 @@ function buildChart(){
   const pts = DATA.rows.map(r=>({x:r.vol,y:r.ret,r:r}));
   const mv = mktVol();
   const mktPoint = mv!=null ? [{x:mv,y:mktRet(),mkt:true}] : [];
+  // explicit axis bounds with headroom so edge points + labels aren't clipped
+  const vols=DATA.rows.map(r=>r.vol).concat(mv!=null?[mv]:[]);
+  const rets=DATA.rows.map(r=>r.ret).concat([mktRet()]);
+  const xMin=Math.floor((Math.min(...vols)-6)/5)*5, xMax=Math.ceil((Math.max(...vols)+7)/5)*5;
+  const yMin=Math.floor((Math.min(...rets)-15)/10)*10, yMax=Math.ceil((Math.max(...rets)+30)/10)*10;
   const ctx=document.getElementById('chart');
   chart=new Chart(ctx,{
     type:'scatter',
@@ -168,11 +173,11 @@ function buildChart(){
     ]},
     options:{
       responsive:true,maintainAspectRatio:false,
-      layout:{padding:{top:10,right:20}},
+      layout:{padding:{top:18,right:54,left:6,bottom:4}},
       scales:{
-        x:{title:{display:true,text:'年化波動度 (%)　→ 風險越高',color:C('--text-muted'),font:{size:12}},
+        x:{min:xMin,max:xMax,title:{display:true,text:'年化波動度 (%)　→ 風險越高',color:C('--text-muted'),font:{size:12}},
           grid:{color:'rgba(28,40,64,.6)'},ticks:{color:C('--text-muted')}},
-        y:{title:{display:true,text:'YTD 報酬率 (%)　→ 表現越好',color:C('--text-muted'),font:{size:12}},
+        y:{min:yMin,max:yMax,title:{display:true,text:'YTD 報酬率 (%)　→ 表現越好',color:C('--text-muted'),font:{size:12}},
           grid:{color:'rgba(28,40,64,.6)'},ticks:{color:C('--text-muted')}}
       },
       plugins:{
