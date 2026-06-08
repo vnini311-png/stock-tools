@@ -1744,8 +1744,10 @@ document.getElementById('btn-fetch-prices').addEventListener('click', async () =
   if (!codes.length) { showToast('沒有任何持股設定了代號', 'error'); return; }
   const orig = btn.textContent;
   btn.disabled = true; btn.textContent = '抓取中…';
+  const isLocal = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
+  const apiBase = isLocal ? '/api/quote' : 'https://stock-quote-proxy.vnini311.workers.dev/api/quote';
   try {
-    const res = await fetch(`/api/quote?codes=${encodeURIComponent(codes.join(','))}`, { cache: 'no-store' });
+    const res = await fetch(`${apiBase}?codes=${encodeURIComponent(codes.join(','))}`, { cache: 'no-store' });
     if (!res.ok) throw new Error('HTTP ' + res.status);
     const data = await res.json();
     if (data.error) throw new Error(data.error);
