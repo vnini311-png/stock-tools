@@ -32,6 +32,14 @@
     --earn-accent2: #22d3ee;
     --earn-glow: rgba(52, 211, 153, 0.18);
 
+    --port-accent: #f43f5e;
+    --port-accent2: #fb7185;
+    --port-glow: rgba(244, 63, 94, 0.18);
+
+    --rr-accent: #2dd4bf;
+    --rr-accent2: #38bdf8;
+    --rr-glow: rgba(45, 212, 191, 0.18);
+
     --mono: 'IBM Plex Mono', monospace;
     --sans: 'IBM Plex Sans TC', sans-serif;
   }
@@ -180,6 +188,27 @@
     --card-accent2: var(--earn-accent2);
     --card-glow: var(--earn-glow);
   }
+  .card-port {
+    --card-accent: var(--port-accent);
+    --card-accent2: var(--port-accent2);
+    --card-glow: var(--port-glow);
+  }
+  .card-rr {
+    --card-accent: var(--rr-accent);
+    --card-accent2: var(--rr-accent2);
+    --card-glow: var(--rr-glow);
+  }
+  .card-lock {
+    font-family: var(--mono);
+    font-size: 10px;
+    padding: 3px 7px;
+    border-radius: 3px;
+    background: var(--surface2);
+    color: var(--text-muted);
+    border: 1px solid var(--border);
+    letter-spacing: 0.05em;
+    margin-left: 6px;
+  }
 
   .card-head {
     display: flex;
@@ -301,11 +330,11 @@
       <div class="brand-mark">▣</div>
       <h1>STOCK TOOLS</h1>
     </div>
-    <p class="subtitle">持股分析工具集 ｜ 月營收追蹤、季度獲利、MACD 技術指標、籌碼觀察</p>
+    <p class="subtitle">持股分析工具集 ｜ 月營收追蹤、季度獲利、MACD 技術指標、籌碼觀察、風險報酬落點</p>
     <div class="meta-bar">
       <span><span class="dot"></span>ONLINE</span>
       <span>STATIC · NO SERVER</span>
-      <span>v1.2</span>
+      <span>v1.3</span>
     </div>
   </header>
 
@@ -397,6 +426,50 @@
       </div>
       <div class="card-foot">
         <span class="card-cta">開啟工具</span>
+        <span class="card-arrow">→</span>
+      </div>
+    </a>
+
+    <a href="tools/risk-return.html" class="card card-rr">
+      <div class="card-head">
+        <div class="card-num">05 / QUANT</div>
+        <div class="card-tag">風險報酬</div>
+      </div>
+      <div class="card-title">報酬 vs 波動 落點分析</div>
+      <div class="card-sub">RISK-RETURN · YTD SCATTER</div>
+      <div class="card-desc">
+        將 38 檔持股以「年化波動度 × YTD 報酬」散佈定位，對照大盤加權指數參考點，四象限快速分辨贏家/落後股與高低風險，內建排序明細表。
+      </div>
+      <div class="card-features">
+        <span class="feat">38 檔持股</span>
+        <span class="feat">大盤基準</span>
+        <span class="feat">四象限</span>
+        <span class="feat">報酬/波動</span>
+      </div>
+      <div class="card-foot">
+        <span class="card-cta">開啟工具</span>
+        <span class="card-arrow">→</span>
+      </div>
+    </a>
+
+    <a href="tools/portfolio.html" class="card card-port">
+      <div class="card-head">
+        <div class="card-num">06 / PRIVATE</div>
+        <div class="card-tag">私密<span class="card-lock">🔒</span></div>
+      </div>
+      <div class="card-title">個人交易記錄</div>
+      <div class="card-sub">TRADES · HOLDINGS · YTD P&L</div>
+      <div class="card-desc">
+        記錄今年以來的買賣明細與每筆損益，總覽目前持股組合的市值、未實現損益與占比。資料以 AES-GCM 加密儲存，需密碼解鎖。
+      </div>
+      <div class="card-features">
+        <span class="feat">年度損益</span>
+        <span class="feat">持股總覽</span>
+        <span class="feat">AES 加密</span>
+        <span class="feat">勝率統計</span>
+      </div>
+      <div class="card-foot">
+        <span class="card-cta">解鎖資料</span>
         <span class="card-arrow">→</span>
       </div>
     </a>
