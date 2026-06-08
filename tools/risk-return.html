@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>報酬 vs 波動 落點分析</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#080c18; --surface:#0f1624; --surface2:#161f33; --border:#1c2840;
+    --accent:#4f8ef7; --accent2:#22d3ee; --text:#dde4f0; --text-muted:#4d6080;
+    --green:#34d399; --teal:#22d3ee; --amber:#fbbf24; --red:#fb7185;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{background:var(--bg);color:var(--text);font-family:'Noto Sans TC',sans-serif;min-height:100vh;}
+  .header{background:linear-gradient(180deg,#0d1626 0%,#080c18 100%);border-bottom:1px solid var(--border);
+    padding:18px 28px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;}
+  .header-left h1{font-family:'Space Mono',monospace;font-size:17px;font-weight:700;
+    background:linear-gradient(90deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
+  .header-left p{font-size:11px;color:var(--text-muted);margin-top:3px;letter-spacing:.4px;}
+  .legend-bar{display:flex;gap:14px;align-items:center;flex-wrap:wrap;}
+  .legend-item{display:flex;align-items:center;gap:6px;font-size:11px;font-weight:500;color:var(--text-muted);}
+  .dot{width:10px;height:10px;border-radius:50%;}
+
+  .controls{padding:14px 28px 0;display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+  .ctrl-label{font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;margin-right:2px;}
+  .btn{padding:5px 13px;border:1px solid var(--border);border-radius:5px;background:var(--surface);
+    color:var(--text-muted);font-size:11px;cursor:pointer;transition:all .15s;font-family:'Noto Sans TC',sans-serif;}
+  .btn:hover,.btn.active{border-color:var(--accent);color:var(--accent);background:rgba(79,142,247,.1);}
+  .field{display:flex;align-items:center;gap:6px;background:var(--surface);border:1px solid var(--border);
+    border-radius:5px;padding:3px 8px;}
+  .field label{font-size:11px;color:var(--text-muted);}
+  .field input{background:transparent;border:none;outline:none;color:var(--text);width:62px;
+    font-family:'Space Mono',monospace;font-size:12px;}
+  .search-input{background:var(--surface);border:1px solid var(--border);border-radius:5px;color:var(--text);
+    padding:5px 12px;font-size:12px;width:160px;outline:none;font-family:'Noto Sans TC',sans-serif;margin-left:auto;}
+  .search-input:focus{border-color:var(--accent);}
+
+  .summary{margin:12px 28px 0;padding:12px 18px;background:var(--surface2);border:1px solid var(--border);
+    border-radius:8px;display:flex;gap:26px;flex-wrap:wrap;align-items:center;}
+  .si{display:flex;flex-direction:column;gap:1px;}
+  .si-label{font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.4px;}
+  .si-val{font-family:'Space Mono',monospace;font-size:14px;font-weight:700;}
+  .si-val.up{color:var(--green);} .si-val.down{color:var(--red);}
+
+  .chart-wrap{margin:16px 28px 0;padding:16px;background:var(--surface);border:1px solid var(--border);
+    border-radius:10px;height:600px;position:relative;}
+
+  .table-wrap{margin:18px 28px 40px;background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden;}
+  table{width:100%;border-collapse:collapse;font-size:12px;}
+  th,td{padding:8px 12px;text-align:right;border-bottom:1px solid var(--border);white-space:nowrap;}
+  th{font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.4px;cursor:pointer;
+    position:sticky;top:0;background:var(--surface2);user-select:none;}
+  th:hover{color:var(--accent);}
+  th.l,td.l{text-align:left;}
+  td.code{font-family:'Space Mono',monospace;color:var(--accent2);}
+  td.name{font-weight:600;}
+  .num{font-family:'Space Mono',monospace;}
+  .up{color:var(--green);} .down{color:var(--red);}
+  tr.row:hover{background:rgba(79,142,247,.07);}
+  tr.row.hl{background:rgba(245,158,11,.12);}
+  .q-tag{display:inline-block;font-size:10px;padding:1px 6px;border-radius:4px;font-weight:600;}
+</style>
+</head>
+<body>
+  <div class="header">
+    <div class="header-left">
+      <h1>報酬 vs 波動 · 落點分析</h1>
+      <p id="subtitle">持股組合 38 檔 vs 加權指數 · YTD 2026 · 資料截止 2026-06-08</p>
+    </div>
+    <div class="legend-bar">
+      <span class="legend-item"><span class="dot" style="background:var(--green)"></span>贏大盤·低波動</span>
+      <span class="legend-item"><span class="dot" style="background:var(--teal)"></span>贏大盤·高波動</span>
+      <span class="legend-item"><span class="dot" style="background:var(--amber)"></span>輸大盤·低波動</span>
+      <span class="legend-item"><span class="dot" style="background:var(--red)"></span>輸大盤·高波動</span>
+    </div>
+  </div>
+
+  <div class="controls">
+    <span class="ctrl-label">大盤基準</span>
+    <div class="field"><label>YTD報酬%</label><input id="mktRet" type="number" step="0.1" value="50.2"></div>
+    <div class="field"><label>年化波動%</label><input id="mktVol" type="number" step="0.1" value="28.46"></div>
+    <span class="ctrl-label" style="margin-left:10px;">縱切線</span>
+    <button class="btn" id="divMedian" onclick="setDivider('median')">波動中位數</button>
+    <button class="btn active" id="divMkt" onclick="setDivider('mkt')">大盤波動</button>
+    <button class="btn" id="lblBtn" onclick="toggleLabels()" style="margin-left:10px;">標籤：開</button>
+    <input class="search-input" id="search" placeholder="搜尋代號/名稱…" oninput="onSearch()">
+  </div>
+
+  <div class="summary" id="summary"></div>
+  <div class="chart-wrap"><canvas id="chart"></canvas></div>
+  <div class="table-wrap"><table id="tbl"><thead></thead><tbody></tbody></table></div>
+
+<script>
+const DATA = {"asof":"2026-06-08","market":{"name":"加權指數","ret":50.2,"vol":28.46,"mdd":-10.42},"rows":[{"code":"3026","name":"禾伸堂","base":102,"last":601,"ret":489.22,"vol":79.12,"mdd":-16.67},{"code":"6715","name":"嘉基","base":102.5,"last":421,"ret":310.73,"vol":89.21,"mdd":-22.41},{"code":"2327","name":"國巨","base":231,"last":751,"ret":225.11,"vol":72.46,"mdd":-19.1},{"code":"2454","name":"聯發科","base":1430,"last":4070,"ret":184.62,"vol":69.57,"mdd":-24.68},{"code":"6285","name":"華星光","base":99,"last":273.5,"ret":176.26,"vol":80.62,"mdd":-26.75},{"code":"3491","name":"昇達科","base":679,"last":1785,"ret":162.89,"vol":84.39,"mdd":-33.33},{"code":"2308","name":"台達電","base":963,"last":2255,"ret":134.16,"vol":62.4,"mdd":-16.01},{"code":"8155","name":"博智","base":168,"last":359.5,"ret":113.99,"vol":69.7,"mdd":-23.55},{"code":"7769","name":"鴻勁","base":3425,"last":7035,"ret":105.4,"vol":67.91,"mdd":-27.88},{"code":"2345","name":"智邦","base":1185,"last":2420,"ret":104.22,"vol":70.92,"mdd":-11.96},{"code":"2368","name":"金像電","base":687,"last":1360,"ret":97.96,"vol":71.65,"mdd":-16.55},{"code":"3036","name":"文曄","base":137,"last":250,"ret":82.48,"vol":54.92,"mdd":-22.27},{"code":"3363","name":"台灣精銳","base":457.5,"last":829,"ret":81.2,"vol":87.2,"mdd":-25.35},{"code":"3006","name":"晶豪科","base":118,"last":207,"ret":75.42,"vol":93.44,"mdd":-32.31},{"code":"6257","name":"光聖","base":116.5,"last":201,"ret":72.53,"vol":57.02,"mdd":-21.59},{"code":"3017","name":"奇鋐","base":1510,"last":2570,"ret":70.2,"vol":65.96,"mdd":-20.54},{"code":"4979","name":"矽格","base":325.5,"last":537,"ret":64.98,"vol":91.82,"mdd":-27.16},{"code":"2885","name":"元大金","base":39.3,"last":62,"ret":57.76,"vol":30.93,"mdd":-11.9},{"code":"8299","name":"群聯","base":1450,"last":2250,"ret":55.17,"vol":87.14,"mdd":-36.97},{"code":"3587","name":"閎康","base":185.5,"last":286,"ret":54.18,"vol":69.41,"mdd":-27.78},{"code":"2357","name":"華碩","base":548,"last":844,"ret":54.01,"vol":46.11,"mdd":-10.63},{"code":"3044","name":"健鼎","base":317.5,"last":478,"ret":50.55,"vol":52.72,"mdd":-18.82},{"code":"2330","name":"台積電","base":1544.96,"last":2295,"ret":48.55,"vol":34.24,"mdd":-12.37},{"code":"6442","name":"M31","base":1360,"last":1970,"ret":44.85,"vol":87.21,"mdd":-28.45},{"code":"3680","name":"家登","base":356,"last":501,"ret":40.73,"vol":64.43,"mdd":-19.98},{"code":"2382","name":"廣達","base":272,"last":376.5,"ret":38.42,"vol":46.3,"mdd":-16.31},{"code":"5536","name":"聖暉","base":775.66,"last":1050,"ret":35.37,"vol":60.01,"mdd":-23.93},{"code":"6643","name":"上詮","base":377,"last":501,"ret":32.89,"vol":70.12,"mdd":-28.12},{"code":"5904","name":"寶雅","base":439.5,"last":582,"ret":32.42,"vol":28.53,"mdd":-12.25},{"code":"3034","name":"聯詠","base":374,"last":473,"ret":26.47,"vol":37.58,"mdd":-10.2},{"code":"2379","name":"瑞昱","base":489,"last":596,"ret":21.88,"vol":46.97,"mdd":-22.74},{"code":"6214","name":"啟碁","base":118,"last":140.5,"ret":19.07,"vol":36.41,"mdd":-13.93},{"code":"2404","name":"漢唐","base":949,"last":1110,"ret":16.97,"vol":57.11,"mdd":-28.61},{"code":"6805","name":"富士達","base":1625,"last":1895,"ret":16.62,"vol":68.4,"mdd":-22.35},{"code":"5269","name":"祥碩","base":1210,"last":1400,"ret":15.7,"vol":63.9,"mdd":-24.29},{"code":"3596","name":"精誠","base":165.18,"last":181,"ret":9.58,"vol":39.24,"mdd":-23.75},{"code":"1519","name":"華城","base":765,"last":815,"ret":6.54,"vol":56.49,"mdd":-28.7},{"code":"6781","name":"AES-KY","base":1330,"last":1060,"ret":-20.3,"vol":61.96,"mdd":-28.05}]};
+
+const CSS = getComputedStyle(document.documentElement);
+const C = n => CSS.getPropertyValue(n).trim();
+let showLabels = true, dividerMode = 'mkt', highlight = '';
+let sortKey = 'ret', sortDir = -1;
+
+function median(arr){const a=[...arr].sort((x,y)=>x-y);const m=Math.floor(a.length/2);return a.length%2?a[m]:(a[m-1]+a[m])/2;}
+function mktRet(){return parseFloat(document.getElementById('mktRet').value)||0;}
+function mktVol(){const v=document.getElementById('mktVol').value;return v===''?null:parseFloat(v);}
+function vDiv(){const mv=mktVol();return (dividerMode==='mkt'&&mv!=null)?mv:median(DATA.rows.map(r=>r.vol));}
+
+function quadColor(r){
+  const overMkt = r.ret >= mktRet();
+  const hiVol = r.vol >= vDiv();
+  if(overMkt && !hiVol) return C('--green');   // 贏大盤·低波動
+  if(overMkt && hiVol)  return C('--teal');    // 贏大盤·高波動
+  if(!overMkt && !hiVol)return C('--amber');   // 輸大盤·低波動
+  return C('--red');                            // 輸大盤·高波動
+}
+
+// crosshair + quadrant background plugin
+const crosshair = {
+  id:'crosshair',
+  beforeDatasetsDraw(chart){
+    const {ctx,chartArea:a,scales:{x,y}} = chart;
+    const yMkt = y.getPixelForValue(mktRet());
+    const xDiv = x.getPixelForValue(vDiv());
+    ctx.save();
+    // quadrant shading (very subtle)
+    const tints=[['--green',a.left,a.top,xDiv,yMkt],['--teal',xDiv,a.top,a.right,yMkt],
+                 ['--amber',a.left,yMkt,xDiv,a.bottom],['--red',xDiv,yMkt,a.right,a.bottom]];
+    tints.forEach(([col,x0,y0,x1,y1])=>{ctx.fillStyle=hexA(C(col),0.05);ctx.fillRect(x0,y0,x1-x0,y1-y0);});
+    // lines
+    ctx.setLineDash([5,4]); ctx.lineWidth=1.4;
+    ctx.strokeStyle=hexA(C('--accent2'),0.85);
+    ctx.beginPath();ctx.moveTo(a.left,yMkt);ctx.lineTo(a.right,yMkt);ctx.stroke();
+    ctx.strokeStyle=hexA(C('--text-muted'),0.7);
+    ctx.beginPath();ctx.moveTo(xDiv,a.top);ctx.lineTo(xDiv,a.bottom);ctx.stroke();
+    ctx.setLineDash([]);
+    // labels
+    ctx.font="600 11px 'Space Mono',monospace";
+    ctx.fillStyle=C('--accent2');ctx.textAlign='left';
+    ctx.fillText(`大盤 ${mktRet().toFixed(1)}%`,a.left+6,yMkt-6);
+    ctx.fillStyle=C('--text-muted');ctx.textAlign='center';
+    ctx.fillText(dividerMode==='mkt'&&mktVol()!=null?'大盤波動':'波動中位數',xDiv,a.top+12);
+    // quadrant captions
+    ctx.font="700 12px 'Noto Sans TC'";ctx.globalAlpha=.5;
+    ctx.fillStyle=C('--green');ctx.textAlign='left';ctx.fillText('高效率區（贏大盤·低波動）',a.left+8,a.top+30);
+    ctx.fillStyle=C('--red');ctx.textAlign='right';ctx.fillText('警示區（輸大盤·高波動）',a.right-8,a.bottom-10);
+    ctx.globalAlpha=1;ctx.restore();
+  }
+};
+function hexA(hex,al){const h=hex.replace('#','');const r=parseInt(h.substr(0,2),16),g=parseInt(h.substr(2,2),16),b=parseInt(h.substr(4,2),16);return `rgba(${r},${g},${b},${al})`;}
+
+let chart;
+function buildChart(){
+  const pts = DATA.rows.map(r=>({x:r.vol,y:r.ret,r:r}));
+  const mv = mktVol();
+  const mktPoint = mv!=null ? [{x:mv,y:mktRet(),mkt:true}] : [];
+  const ctx=document.getElementById('chart');
+  chart=new Chart(ctx,{
+    type:'scatter',
+    data:{datasets:[
+      {label:'個股',data:pts,parsing:false,
+        pointRadius:c=>pointR(c),pointHoverRadius:c=>pointR(c)+3,
+        backgroundColor:c=>hexA(quadColor(c.raw.r),isHL(c.raw.r)?0.95:0.78),
+        borderColor:c=>isHL(c.raw.r)?C('--amber'):'rgba(255,255,255,.25)',
+        borderWidth:c=>isHL(c.raw.r)?2.5:1},
+      {label:'大盤',data:mktPoint,parsing:false,pointStyle:'rectRot',pointRadius:11,pointHoverRadius:14,
+        backgroundColor:C('--accent2'),borderColor:'#fff',borderWidth:2,datalabels:{display:false}}
+    ]},
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      layout:{padding:{top:10,right:20}},
+      scales:{
+        x:{title:{display:true,text:'年化波動度 (%)　→ 風險越高',color:C('--text-muted'),font:{size:12}},
+          grid:{color:'rgba(28,40,64,.6)'},ticks:{color:C('--text-muted')}},
+        y:{title:{display:true,text:'YTD 報酬率 (%)　→ 表現越好',color:C('--text-muted'),font:{size:12}},
+          grid:{color:'rgba(28,40,64,.6)'},ticks:{color:C('--text-muted')}}
+      },
+      plugins:{
+        legend:{display:false},
+        tooltip:{callbacks:{
+          title:c=>c[0].raw.mkt?'加權指數（大盤）':`${c[0].raw.r.code} ${c[0].raw.r.name}`,
+          label:c=>{if(c.raw.mkt)return [`YTD報酬：${mktRet().toFixed(1)}%`,`年化波動：${DATA.market.vol.toFixed(1)}%`,`最大回檔：${DATA.market.mdd.toFixed(1)}%`];const r=c.raw.r;const ex=(r.ret-mktRet()).toFixed(1);
+            return [`YTD報酬：${r.ret.toFixed(1)}%`,`年化波動：${r.vol.toFixed(1)}%`,`最大回檔：${r.mdd.toFixed(1)}%`,
+              `相對大盤：${ex>=0?'+':''}${ex}%`,`報酬/波動：${(r.ret/r.vol).toFixed(2)}`,`價：${r.base}→${r.last}`];}
+        }},
+        datalabels:{display:c=>showLabels&&c.dataset.label==='個股',
+          formatter:(v)=>v&&v.r?v.r.name:'',
+          color:c=>{const p=c.dataset.data[c.dataIndex];return p&&p.r?quadColor(p.r):'#fff';},
+          font:{size:9,weight:'600'},anchor:'end',align:'top',offset:3,clip:false}
+      }
+    },
+    plugins:[crosshair,ChartDataLabels]
+  });
+}
+function pointR(c){const r=c.raw.r; if(!r)return 6; const a=Math.abs(r.mdd); return 5+Math.min(a/6,7);}
+function isHL(r){return highlight && (r.code.includes(highlight)||r.name.includes(highlight));}
+
+function renderSummary(){
+  const rows=DATA.rows, m=mktRet();
+  const win=rows.filter(r=>r.ret>m).length;
+  const avg=rows.reduce((s,r)=>s+r.ret,0)/rows.length;
+  const med=median(rows.map(r=>r.ret));
+  const best=rows.reduce((a,b)=>a.ret>b.ret?a:b), worst=rows.reduce((a,b)=>a.ret<b.ret?a:b);
+  const cls=v=>v>=0?'up':'down';
+  document.getElementById('summary').innerHTML=`
+    <div class="si"><span class="si-label">檔數</span><span class="si-val">${rows.length}</span></div>
+    <div class="si"><span class="si-label">大盤 YTD</span><span class="si-val ${cls(m)}">${m>=0?'+':''}${m.toFixed(1)}%</span></div>
+    <div class="si"><span class="si-label">勝過大盤</span><span class="si-val up">${win} <span style="color:var(--text-muted);font-size:11px">/ ${rows.length}</span></span></div>
+    <div class="si"><span class="si-label">平均報酬</span><span class="si-val ${cls(avg)}">${avg>=0?'+':''}${avg.toFixed(1)}%</span></div>
+    <div class="si"><span class="si-label">中位數報酬</span><span class="si-val ${cls(med)}">${med>=0?'+':''}${med.toFixed(1)}%</span></div>
+    <div class="si"><span class="si-label">最強</span><span class="si-val up">${best.name} +${best.ret.toFixed(0)}%</span></div>
+    <div class="si"><span class="si-label">最弱</span><span class="si-val down">${worst.name} ${worst.ret.toFixed(0)}%</span></div>`;
+}
+
+const COLS=[['code','代號','l'],['name','名稱','l'],['ret','YTD報酬%','n'],['vol','年化波動%','n'],
+  ['ex','相對大盤%','n'],['eff','報酬/波動','n'],['mdd','最大回檔%','n'],['last','現價','n']];
+function renderTable(){
+  const thead=document.querySelector('#tbl thead'), tbody=document.querySelector('#tbl tbody');
+  thead.innerHTML='<tr>'+COLS.map(c=>`<th class="${c[2]==='l'?'l':''}" onclick="sortBy('${c[0]}')">${c[1]}${sortKey===c[0]?(sortDir<0?' ▼':' ▲'):''}</th>`).join('')+'</tr>';
+  const m=mktRet();
+  const rows=DATA.rows.map(r=>({...r,ex:r.ret-m,eff:r.ret/r.vol}));
+  rows.sort((a,b)=>{const va=a[sortKey],vb=b[sortKey];return typeof va==='string'?sortDir*va.localeCompare(vb):sortDir*(va-vb);});
+  tbody.innerHTML=rows.map(r=>{
+    const hl=isHL(r)?' hl':'';
+    const sgn=v=>v>=0?'up':'down', f=(v,d=1)=>(v>=0?'+':'')+v.toFixed(d);
+    return `<tr class="row${hl}">
+      <td class="l code">${r.code}</td><td class="l name">${r.name}</td>
+      <td class="num ${sgn(r.ret)}">${f(r.ret)}</td>
+      <td class="num">${r.vol.toFixed(1)}</td>
+      <td class="num ${sgn(r.ex)}">${f(r.ex)}</td>
+      <td class="num">${r.eff.toFixed(2)}</td>
+      <td class="num down">${r.mdd.toFixed(1)}</td>
+      <td class="num">${r.last}</td></tr>`;
+  }).join('');
+}
+function sortBy(k){if(sortKey===k)sortDir*=-1;else{sortKey=k;sortDir=(k==='code'||k==='name')?1:-1;}renderTable();}
+
+function refresh(){if(chart)chart.destroy();buildChart();renderSummary();renderTable();
+  document.getElementById('subtitle').textContent=`持股組合 ${DATA.rows.length} 檔 vs ${DATA.market.name} · YTD 2026 · 資料截止 ${DATA.asof}`;}
+function setDivider(m){dividerMode=m;document.getElementById('divMedian').classList.toggle('active',m==='median');
+  document.getElementById('divMkt').classList.toggle('active',m==='mkt');refresh();}
+function toggleLabels(){showLabels=!showLabels;document.getElementById('lblBtn').textContent='標籤：'+(showLabels?'開':'關');chart.update();}
+function onSearch(){highlight=document.getElementById('search').value.trim();chart.update();renderTable();}
+document.getElementById('mktRet').addEventListener('input',refresh);
+document.getElementById('mktVol').addEventListener('input',refresh);
+refresh();
+</script>
+</body>
+</html>
