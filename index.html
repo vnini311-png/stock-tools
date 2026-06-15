@@ -40,6 +40,10 @@
     --rr-accent2: #38bdf8;
     --rr-glow: rgba(45, 212, 191, 0.18);
 
+    --watch-accent: #f97316;
+    --watch-accent2: #fbbf24;
+    --watch-glow: rgba(249, 115, 22, 0.18);
+
     --mono: 'IBM Plex Mono', monospace;
     --sans: 'IBM Plex Sans TC', sans-serif;
   }
@@ -198,6 +202,11 @@
     --card-accent2: var(--rr-accent2);
     --card-glow: var(--rr-glow);
   }
+  .card-watch {
+    --card-accent: var(--watch-accent);
+    --card-accent2: var(--watch-accent2);
+    --card-glow: var(--watch-glow);
+  }
   .card-lock {
     font-family: var(--mono);
     font-size: 10px;
@@ -330,11 +339,11 @@
       <div class="brand-mark">▣</div>
       <h1>STOCK TOOLS</h1>
     </div>
-    <p class="subtitle">持股分析工具集 ｜ 月營收追蹤、季度獲利、MACD 技術指標、籌碼觀察、風險報酬落點</p>
+    <p class="subtitle">持股分析工具集 ｜ 月營收追蹤、季度獲利、MACD 技術指標、籌碼觀察、風險報酬落點、自選股熱力圖</p>
     <div class="meta-bar">
       <span><span class="dot"></span>ONLINE</span>
       <span>STATIC · NO SERVER</span>
-      <span>v1.3</span>
+      <span>v1.4</span>
     </div>
   </header>
 
@@ -452,9 +461,31 @@
       </div>
     </a>
 
+    <a href="tools/watchlist.html" class="card card-watch">
+      <div class="card-head">
+        <div class="card-num">06 / TECHNICAL</div>
+        <div class="card-tag">技術面</div>
+      </div>
+      <div class="card-title">自選股．產業熱力圖</div>
+      <div class="card-sub">WATCHLIST · CANDLESTICK · HEATMAP</div>
+      <div class="card-desc">
+        元大科技自選股 149 檔，內建產業分類熱力圖（Overview 可切換各產業看成分股漲跌幅），點選個股即時呈現日K、MA、成交量與 MACD 多空訊號。
+      </div>
+      <div class="card-features">
+        <span class="feat">149 檔自選</span>
+        <span class="feat">產業熱力圖</span>
+        <span class="feat">日K / MACD</span>
+        <span class="feat">資料內嵌</span>
+      </div>
+      <div class="card-foot">
+        <span class="card-cta">開啟工具</span>
+        <span class="card-arrow">→</span>
+      </div>
+    </a>
+
     <a href="tools/portfolio.html" class="card card-port">
       <div class="card-head">
-        <div class="card-num">06 / PRIVATE</div>
+        <div class="card-num">07 / PRIVATE</div>
         <div class="card-tag">私密<span class="card-lock">🔒</span></div>
       </div>
       <div class="card-title">個人交易記錄</div>
