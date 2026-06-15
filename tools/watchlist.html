@@ -16,8 +16,11 @@
   select{min-width:230px;}
   input{width:150px;}
   .meta{display:flex;gap:18px;align-items:baseline;padding:10px 18px;flex-wrap:wrap;}
+  .cname{font-size:20px;font-weight:700;color:var(--txt);}
+  .ccode{font-size:13px;color:var(--mut);font-family:ui-monospace,monospace;}
   .price{font-size:26px;font-weight:700;}
   .chg{font-size:15px;font-weight:600;}
+  a.btn{text-decoration:none;display:inline-flex;align-items:center;}
   .tag{font-size:12px;color:var(--mut);border:1px solid var(--line);padding:2px 8px;border-radius:6px;}
   #chart{width:100%;height:74vh;min-height:520px;}
   .nav{display:flex;gap:6px;}
@@ -46,6 +49,7 @@
   <input id="search" placeholder="搜尋代號/名稱">
   <select id="sel"></select>
   <div class="nav"><button id="prev">◀ 上一檔</button><button id="next">下一檔 ▶</button></div>
+  <a class="btn" id="backTools" href="../index.html"><button>↩ 返回工具列</button></a>
 </header>
 <div class="heat">
   <div class="heat-bar">
@@ -60,6 +64,8 @@
 <div class="meta">
   <span class="tag" id="mkt"></span>
   <span class="tag" id="industry"></span>
+  <span class="cname" id="cname"></span>
+  <span class="ccode" id="ccode"></span>
   <span class="price" id="last"></span>
   <span class="chg" id="chg"></span>
   <span class="sub" id="rng"></span>
@@ -107,6 +113,8 @@ function render(code){
   document.getElementById('chg').style.color=col;
   document.getElementById('mkt').textContent=d.market;
   document.getElementById('industry').textContent=d.ind||'';
+  document.getElementById('cname').textContent=d.name;
+  document.getElementById('ccode').textContent=code;
   document.getElementById('rng').textContent=dates[0]+' ~ '+dates[dates.length-1]+' ('+dates.length+'筆)';
 
   chart.setOption({
