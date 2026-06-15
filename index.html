@@ -44,6 +44,10 @@
     --watch-accent2: #fbbf24;
     --watch-glow: rgba(249, 115, 22, 0.18);
 
+    --turn-accent: #ec4899;
+    --turn-accent2: #f472b6;
+    --turn-glow: rgba(236, 72, 153, 0.18);
+
     --mono: 'IBM Plex Mono', monospace;
     --sans: 'IBM Plex Sans TC', sans-serif;
   }
@@ -206,6 +210,11 @@
     --card-accent: var(--watch-accent);
     --card-accent2: var(--watch-accent2);
     --card-glow: var(--watch-glow);
+  }
+  .card-turn {
+    --card-accent: var(--turn-accent);
+    --card-accent2: var(--turn-accent2);
+    --card-glow: var(--turn-glow);
   }
   .card-lock {
     font-family: var(--mono);
@@ -483,9 +492,31 @@
       </div>
     </a>
 
+    <a href="tools/turnover-ranking.html" class="card card-turn">
+      <div class="card-head">
+        <div class="card-num">07 / MARKET</div>
+        <div class="card-tag">市場面</div>
+      </div>
+      <div class="card-title">成交值排行榜</div>
+      <div class="card-sub">TURNOVER RANKING · TW / US TOP 20</div>
+      <div class="card-desc">
+        台股與美股每日成交值 Top20，上方 Tab 切換市場，橫向長條搭配產業占比甜甜圈，快速掌握資金集中的族群與龍頭股。
+      </div>
+      <div class="card-features">
+        <span class="feat">台股 Top20</span>
+        <span class="feat">美股 Top20</span>
+        <span class="feat">產業占比</span>
+        <span class="feat">Tab 切換</span>
+      </div>
+      <div class="card-foot">
+        <span class="card-cta">開啟工具</span>
+        <span class="card-arrow">→</span>
+      </div>
+    </a>
+
     <a href="tools/portfolio.html" class="card card-port">
       <div class="card-head">
-        <div class="card-num">07 / PRIVATE</div>
+        <div class="card-num">08 / PRIVATE</div>
         <div class="card-tag">私密<span class="card-lock">🔒</span></div>
       </div>
       <div class="card-title">個人交易記錄</div>
