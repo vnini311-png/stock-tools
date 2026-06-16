@@ -1,0 +1,19 @@
+# 元大自選股 即時報價代理 — Cloudflare Worker 設定
+#
+# 一鍵部署：
+#   1. npm install -g wrangler        # 安裝 CLI（一次即可）
+#   2. wrangler login                 # 瀏覽器授權你的 Cloudflare 帳號
+#   3. wrangler deploy                # 在本資料夾執行，部署後會印出 *.workers.dev 網址
+#
+# 之後把印出的網址 <網址>/api/quote 填回 build_html.py 的 QUOTE_WORKER_URL 重建即可。
+# 本機開發測試：wrangler dev  （預設 http://localhost:8787 ）
+
+name = "stock-quote-proxy"
+main = "cloudflare-worker.js"
+compatibility_date = "2026-06-16"
+
+# workers.dev 子網域對外開放（預設）。若想綁自訂網域改用 routes 設定。
+workers_dev = true
+
+[observability]
+enabled = true
