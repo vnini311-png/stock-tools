@@ -690,6 +690,30 @@ footer {
     .panel { padding: 14px 14px; }
     .overview-table thead th, .overview-table tbody td { padding: 8px 6px; font-size: 0.78rem; }
 }
+
+  /* ── MOBILE RESPONSIVE ── */
+  @media (max-width: 768px) {
+    body { font-size: 12px; }
+    .header { padding: 14px 14px 10px; gap: 8px; }
+    .header h1 { font-size: 13px; }
+    .header-meta, #dateLabel { font-size: 10px; }
+    #dateLabel { margin-left: 0; flex-basis: 100%; }
+    .back-btn { padding: 4px 9px; font-size: 10px; }
+    .tbl-wrap { margin: 0 14px; max-height: none; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    table { min-width: 800px; }
+    thead th { padding: 8px 8px; font-size: 9.5px; }
+    tbody td { padding: 7px 8px; font-size: 11px; }
+    .controls { padding: 0 14px; gap: 6px; }
+    .controls select, .controls input { font-size: 11px; padding: 5px 8px; }
+    .controls input { flex: 1; min-width: 0; }
+    .summary, .summary-cards, .stats-grid { grid-template-columns: repeat(2, 1fr) !important; gap: 8px; }
+    .tabs { padding: 0 14px; overflow-x: auto; flex-wrap: nowrap; }
+    .tab { padding: 11px 12px 9px; font-size: 12px; white-space: nowrap; }
+  }
+  @media (max-width: 480px) {
+    .header h1 { font-size: 12px; }
+    .summary, .summary-cards { grid-template-columns: repeat(4, 1fr) !important; gap: 5px; }
+  }
 </style>
 </head>
 <body>
