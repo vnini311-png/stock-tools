@@ -672,16 +672,16 @@ function renderTable(data) {
   tb.innerHTML = data.map(d => `
     <tr onclick="openModal('${d.code}')">
       <td class="code-cell">${d.code}${d.name ? `<span class="stock-name">${d.name}</span>` : ''}</td>
-      <td>${d.close.toFixed(2)}</td>
-      <td class="${d.macd >= 0 ? 'bull' : 'bear'}">${d.macd.toFixed(4)}</td>
-      <td class="${d.signal >= 0 ? 'bull' : 'bear'}">${d.signal.toFixed(4)}</td>
-      <td class="${d.hist >= 0 ? 'bull' : 'bear'}">${d.hist.toFixed(4)}</td>
+      <td>${d.close != null ? d.close.toFixed(2) : '-'}</td>
+      <td class="${d.macd >= 0 ? 'bull' : 'bear'}">${d.macd != null ? d.macd.toFixed(4) : '-'}</td>
+      <td class="${d.signal >= 0 ? 'bull' : 'bear'}">${d.signal != null ? d.signal.toFixed(4) : '-'}</td>
+      <td class="${d.hist >= 0 ? 'bull' : 'bear'}">${d.hist != null ? d.hist.toFixed(4) : '-'}</td>
       <td>${histBadge(d)}</td>
       <td class="${d.trend === '多頭' ? 'bull' : 'bear'}">${d.trend}</td>
       <td class="${d.position === '零軸上' ? 'bull' : 'muted'}">${d.position}</td>
       <td>${sigBadge(d)}</td>
-      <td class="muted">${d.ma20.toFixed(2)}</td>
-      <td class="muted">${d.ma60.toFixed(2)}</td>
+      <td class="muted">${d.ma20 != null ? d.ma20.toFixed(2) : '-'}</td>
+      <td class="muted">${d.ma60 != null ? d.ma60.toFixed(2) : '-'}</td>
     </tr>`).join('');
 }
 
@@ -748,7 +748,7 @@ function openModal(code) {
           <div>
             <div class="modal-title">${d.code}</div>
             <div class="modal-sub">
-              ${d.date} ｜ 收盤 ${d.close.toFixed(2)} ｜
+              ${d.date} ｜ 收盤 ${d.close != null ? d.close.toFixed(2) : '-'} ｜
               <span class="${d.trend === '多頭' ? 'bull' : 'bear'}">${d.trend}</span> ｜ ${d.position}
               ${d.golden ? ' ｜ <span style="color:var(--gold)">黃金交叉</span>' : ''}
               ${d.dead   ? ' ｜ <span style="color:var(--bear)">死亡交叉</span>' : ''}
@@ -757,12 +757,12 @@ function openModal(code) {
           <button class="close-btn" onclick="closeModal()">✕ 關閉</button>
         </div>
         <div class="stats-grid">
-          <div class="stat-box"><div class="sl">MACD</div><div class="sv ${d.macd >= 0 ? 'bull' : 'bear'}">${d.macd.toFixed(4)}</div></div>
-          <div class="stat-box"><div class="sl">SIGNAL</div><div class="sv ${d.signal >= 0 ? 'bull' : 'bear'}">${d.signal.toFixed(4)}</div></div>
-          <div class="stat-box"><div class="sl">HISTOGRAM</div><div class="sv ${d.hist >= 0 ? 'bull' : 'bear'}">${d.hist.toFixed(4)} <span style="font-size:10px;color:var(--text3)">${d.hist_dir}</span></div></div>
-          <div class="stat-box"><div class="sl">MA20</div><div class="sv plain">${d.ma20.toFixed(2)}</div></div>
-          <div class="stat-box"><div class="sl">MA60</div><div class="sv plain">${d.ma60.toFixed(2)}</div></div>
-          <div class="stat-box"><div class="sl">成交量</div><div class="sv plain">${(d.volume / 1000).toFixed(0)}K</div></div>
+          <div class="stat-box"><div class="sl">MACD</div><div class="sv ${d.macd >= 0 ? 'bull' : 'bear'}">${d.macd != null ? d.macd.toFixed(4) : '-'}</div></div>
+          <div class="stat-box"><div class="sl">SIGNAL</div><div class="sv ${d.signal >= 0 ? 'bull' : 'bear'}">${d.signal != null ? d.signal.toFixed(4) : '-'}</div></div>
+          <div class="stat-box"><div class="sl">HISTOGRAM</div><div class="sv ${d.hist >= 0 ? 'bull' : 'bear'}">${d.hist != null ? d.hist.toFixed(4) : '-'} <span style="font-size:10px;color:var(--text3)">${d.hist_dir}</span></div></div>
+          <div class="stat-box"><div class="sl">MA20</div><div class="sv plain">${d.ma20 != null ? d.ma20.toFixed(2) : '-'}</div></div>
+          <div class="stat-box"><div class="sl">MA60</div><div class="sv plain">${d.ma60 != null ? d.ma60.toFixed(2) : '-'}</div></div>
+          <div class="stat-box"><div class="sl">成交量</div><div class="sv plain">${(d.volume / 1000) != null ? (d.volume / 1000).toFixed(0) : '-'}K</div></div>
         </div>
         <div class="chart-label">▸ 收盤走勢（近60日）</div>
         <div class="chart-wrap"><canvas id="cClose"></canvas></div>
@@ -1336,7 +1336,7 @@ async function runAIAnalysis() {
   const dead     = ALL_DATA.filter(d => d.dead);
 
   const fmt = arr => arr.map(d =>
-    `${getStockLabel(d)} MACD:${d.macd.toFixed(2)} 柱:${d.hist.toFixed(2)}`
+    `${getStockLabel(d)} MACD:${d.macd != null ? d.macd.toFixed(2) : '-'} 柱:${d.hist != null ? d.hist.toFixed(2) : '-'}`
   ).join('、');
 
   const dateStr = document.getElementById('dateLabel').textContent.match(/\d{4}-\d{2}-\d{2}/)?.[0] || '';
