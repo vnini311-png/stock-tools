@@ -176,6 +176,34 @@
   .sv.gold { color: var(--gold); }
   .sv.plain { color: var(--text); }
 
+  /* ── MOBILE RESPONSIVE ── */
+  @media (max-width: 768px) {
+    body { font-size: 12px; }
+    .header { padding: 14px 14px 10px; gap: 8px; }
+    .header h1 { font-size: 13px; }
+    .header-meta, #dateLabel { font-size: 10px; }
+    #dateLabel { margin-left: 0; flex-basis: 100%; }
+    .back-btn { padding: 4px 9px; font-size: 10px; }
+    .tabs { padding: 0 14px; overflow-x: auto; flex-wrap: nowrap; }
+    .tab { padding: 11px 12px 9px; font-size: 12px; white-space: nowrap; }
+    .tab-meta { font-size: 9.5px; }
+    .summary { grid-template-columns: repeat(2, 1fr) !important; gap: 8px; margin: 0 14px 14px; }
+    .stats-grid { grid-template-columns: repeat(2, 1fr) !important; }
+    .controls { padding: 0 14px; gap: 6px; }
+    .controls select, .controls input { font-size: 11px; padding: 5px 8px; }
+    .controls input { width: 100%; box-sizing: border-box; }
+    .count-label { margin-left: 0; flex-basis: 100%; text-align: right; }
+    .tbl-wrap { margin: 0 14px; max-height: none; }
+    thead th { padding: 8px 8px; font-size: 9.5px; }
+    tbody td { padding: 7px 8px; font-size: 11px; }
+    #dropZone { margin: 14px; padding: 30px 16px !important; }
+  }
+  @media (max-width: 480px) {
+    .header h1 { font-size: 12px; }
+    .summary { grid-template-columns: repeat(4, 1fr) !important; gap: 5px; }
+    .summary .stat-card { padding: 8px 4px !important; }
+  }
+
   /* ── CONTROLS ── */
   .controls {
     display: flex;
@@ -212,9 +240,10 @@
   .tbl-wrap {
     border: 1px solid var(--border);
     border-radius: 10px;
-    overflow: hidden;
+    overflow-x: auto;
     overflow-y: auto;
     max-height: 520px;
+    -webkit-overflow-scrolling: touch;
   }
   table { width: 100%; border-collapse: collapse; }
   thead th {
