@@ -58,11 +58,17 @@
   .rtoggle{display:flex;gap:6px}
   .rmk{background:var(--panel2);color:var(--muted);border:1px solid var(--border);border-radius:8px;padding:6px 14px;font-size:13px;font-weight:600;cursor:pointer}
   .rmk.active{color:#fff;border-color:var(--race);background:rgba(188,140,255,.15)}
-  .rbtn{background:var(--panel2);color:var(--txt);border:1px solid var(--border);border-radius:8px;padding:6px 14px;font-size:13px;cursor:pointer}
-  .rbtn:hover{border-color:var(--race);color:#fff}
   .raceday{font-size:26px;font-weight:800;letter-spacing:1px;color:var(--race);font-variant-numeric:tabular-nums;margin-left:auto}
-  .racearea{position:relative;height:560px;margin-top:8px;overflow:hidden}
-  .rrow{position:absolute;left:0;top:0;height:26px;width:100%;display:flex;align-items:center;gap:8px;transition:opacity .3s;will-change:transform}
+  .rslider-wrap{margin:8px 0 2px}
+  .rslider{-webkit-appearance:none;appearance:none;width:100%;height:6px;border-radius:4px;background:linear-gradient(90deg,#6f42c1,var(--race));outline:none;cursor:pointer}
+  .rslider::-webkit-slider-thumb{-webkit-appearance:none;width:22px;height:22px;border-radius:50%;background:#fff;border:3px solid var(--race);cursor:grab;box-shadow:0 2px 8px rgba(0,0,0,.55);margin-top:0}
+  .rslider:active::-webkit-slider-thumb{cursor:grabbing}
+  .rslider::-moz-range-thumb{width:20px;height:20px;border-radius:50%;background:#fff;border:3px solid var(--race);cursor:grab;box-shadow:0 2px 8px rgba(0,0,0,.55)}
+  .rticks{display:flex;justify-content:space-between;margin-top:6px;padding:0 1px}
+  .rtick{font-size:11px;color:var(--muted);font-variant-numeric:tabular-nums;cursor:pointer}
+  .rtick.on{color:var(--race);font-weight:700}
+  .racearea{position:relative;height:560px;margin-top:14px;overflow:hidden}
+  .rrow{position:absolute;left:0;top:0;height:26px;width:100%;display:flex;align-items:center;gap:8px;transition:opacity .3s,transform .18s ease-out;will-change:transform}
   .rrk{width:24px;text-align:right;color:var(--muted);font-size:12px;font-variant-numeric:tabular-nums;flex:none}
   .rnm{width:120px;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:none}
   .rnm .code{color:var(--muted);font-size:10px;margin-left:3px}
@@ -133,11 +139,14 @@
         <button class="rmk active" data-rmk="tw">台股</button>
         <button class="rmk" data-rmk="us">美股</button>
       </div>
-      <button class="rbtn" id="raceReplay">&#9654; 重播</button>
       <span class="raceday" id="raceDay"></span>
     </div>
+    <div class="rslider-wrap">
+      <input type="range" class="rslider" id="raceSlider" min="0" max="400" value="400" step="1">
+      <div class="rticks" id="raceTicks"></div>
+    </div>
     <div class="racearea" id="raceArea"></div>
-    <div class="racehint">沿時間軸內插，名次即時變動；柱長 = 當日成交值，顏色 = 產業。台股 6/15→6/22（5 日）、美股 6/14→6/17（4 日）。</div>
+    <div class="racehint">拖動上方滑桿即可沿時間軸檢視名次變化；柱長 = 當日成交值，顏色 = 產業。台股 6/15→6/22（5 日）、美股 6/14→6/17（4 日）。</div>
   </div>
 </div>
 
@@ -302,12 +311,12 @@ function build(rows, prevRows, ids, cur, ld, pd){
   });
 }
 
-// ---- 近5日 bar chart race ----
-let raceRAF=null, raceMk="tw";
-const ease=t=>t<.5?4*t*t*t:1-Math.pow(-2*t+2,3)/2;
+// ---- 近5日 成交值排行 拖曳檢視 ----
+let raceMk="tw", raceState=null;
 const fmtDay=d=>d.slice(5);
-function startRace(rmk){
-  cancelAnimationFrame(raceRAF); raceMk=rmk;
+const STEP=100; // slider units per trading-day interval
+function setupRace(rmk){
+  raceMk=rmk;
   const daily=rmk==="tw"?TW_DAILY:US_DAILY, cur=rmk==="us"?"$":"";
   const days=Object.keys(daily).sort(), L=days.length;
   const meta={}, vmaps=days.map(d=>{const m={};daily[d].forEach(r=>{m[r[1]]=r[3];meta[r[1]]={n:r[0],c:r[1],ind:r[2]};});return m;});
@@ -321,33 +330,37 @@ function startRace(rmk){
     el.innerHTML='<div class="rrk"></div><div class="rnm">'+meta[c].n+'<span class="code">'+meta[c].c+'</span></div><div class="rtk"><div class="rfl" style="background:'+cmap[meta[c].ind]+'"></div><div class="rvl"></div></div>';
     area.appendChild(el); rows[c]={el,rk:el.querySelector(".rrk"),fl:el.querySelector(".rfl"),vl:el.querySelector(".rvl")};
   });
-  const seg=1400, hold=650, unit=seg+hold, endT=(L-1)*unit+hold, dayEl=document.getElementById("raceDay"), t0=performance.now();
-  function render(e){
-    let i,t,dd; const k=Math.floor(e/unit);
-    if(k>=L-1){i=L-1;t=0;dd=L-1;}
-    else{const lo=e-k*unit; if(lo<hold){i=k;t=0;dd=k;} else{t=(lo-hold)/seg;i=k;dd=t<.5?k:k+1;}}
-    const te=ease(t);
-    const cur2=codes.map(c=>{const a=vmaps[i][c]||0,b=(i<L-1?vmaps[i+1][c]||0:a);return {c,v:a+(b-a)*te};});
-    cur2.sort((x,y)=>y.v-x.v);
-    cur2.forEach((o,idx)=>{const R=rows[o.c];
-      if(idx<N&&o.v>0.01){R.el.style.opacity=1;R.el.style.transform="translateY("+(idx*rowH)+"px)";R.rk.textContent=idx+1;
-        const pct=Math.max(.4,o.v/gmax*100);R.fl.style.width=pct+"%";
-        if(pct>14){R.vl.style.left="auto";R.vl.style.right=(100-pct)+"%";R.vl.style.color="#10151c";}
-        else{R.vl.style.right="auto";R.vl.style.left=pct+"%";R.vl.style.color="var(--txt)";}
-        R.vl.textContent=fmt(o.v,cur);}
-      else{R.el.style.opacity=0;R.el.style.transform="translateY("+((N-1)*rowH)+"px)";}});
-    dayEl.textContent=fmtDay(days[dd]);
-  }
-  function loop(now){const e=Math.min(now-t0,endT);render(e);if(e<endT)raceRAF=requestAnimationFrame(loop);}
-  raceRAF=requestAnimationFrame(loop);
+  raceState={days,L,vmaps,codes,rows,gmax,N,rowH,cur};
+  const ticks=document.getElementById("raceTicks");
+  ticks.innerHTML=days.map((d,ix)=>'<span class="rtick" data-ix="'+ix+'">'+fmtDay(d)+'</span>').join("");
+  ticks.querySelectorAll(".rtick").forEach(el=>el.addEventListener("click",()=>{const v=(+el.dataset.ix)*STEP;document.getElementById("raceSlider").value=v;renderRace(+el.dataset.ix);}));
+  const sl=document.getElementById("raceSlider"); sl.max=(L-1)*STEP; sl.value=(L-1)*STEP;
+  renderRace(L-1);
+}
+function renderRace(pos){
+  if(!raceState)return;
+  const {days,L,vmaps,codes,rows,gmax,N,rowH,cur}=raceState;
+  pos=Math.max(0,Math.min(L-1,pos));
+  const ii=Math.min(L-1,Math.floor(pos)), frac=pos-ii;
+  const cur2=codes.map(c=>{const a=vmaps[ii][c]||0,b=(ii<L-1?vmaps[ii+1][c]||0:a);return {c,v:a+(b-a)*frac};});
+  cur2.sort((x,y)=>y.v-x.v);
+  cur2.forEach((o,idx)=>{const R=rows[o.c];
+    if(idx<N&&o.v>0.01){R.el.style.opacity=1;R.el.style.transform="translateY("+(idx*rowH)+"px)";R.rk.textContent=idx+1;
+      const pct=Math.max(.4,o.v/gmax*100);R.fl.style.width=pct+"%";
+      if(pct>14){R.vl.style.left="auto";R.vl.style.right=(100-pct)+"%";R.vl.style.color="#10151c";}
+      else{R.vl.style.right="auto";R.vl.style.left=pct+"%";R.vl.style.color="var(--txt)";}
+      R.vl.textContent=fmt(o.v,cur);}
+    else{R.el.style.opacity=0;R.el.style.transform="translateY("+((N-1)*rowH)+"px)";}});
+  const dd=Math.round(pos);
+  document.getElementById("raceDay").textContent=fmtDay(days[dd]);
+  document.querySelectorAll("#raceTicks .rtick").forEach((el,ix)=>el.classList.toggle("on",ix===dd));
 }
 
 const built={tw:false,us:false};
 function activate(mk){
   document.querySelectorAll(".tab").forEach(t=>t.classList.toggle("active",t.dataset.mk===mk));
   document.querySelectorAll(".market").forEach(m=>m.classList.toggle("active",m.id==="mk-"+mk));
-  cancelAnimationFrame(raceRAF);
-  if(mk==="race"){document.querySelectorAll(".rmk").forEach(b=>b.classList.toggle("active",b.dataset.rmk===raceMk));startRace(raceMk);return;}
+  if(mk==="race"){document.querySelectorAll(".rmk").forEach(b=>b.classList.toggle("active",b.dataset.rmk===raceMk));setupRace(raceMk);return;}
   if(!built[mk]){
     if(mk==="tw"){const x=latestPrev(TW_DAILY);build(x.rows,x.prevRows,{total:"tw-total",delta:"tw-delta",top:"tw-top",ind:"tw-ind",bar:"twBar",dough:"twDough",table:"twTable"},"",x.ld,x.pd);}
     else{const x=latestPrev(US_DAILY);build(x.rows,x.prevRows,{total:"us-total",delta:"us-delta",top:"us-top",ind:"us-ind",bar:"usBar",dough:"usDough",table:"usTable"},"$",x.ld,x.pd);}
@@ -355,8 +368,8 @@ function activate(mk){
   }
 }
 document.querySelectorAll(".tab").forEach(t=>t.addEventListener("click",()=>activate(t.dataset.mk)));
-document.querySelectorAll(".rmk").forEach(b=>b.addEventListener("click",()=>{document.querySelectorAll(".rmk").forEach(x=>x.classList.toggle("active",x===b));startRace(b.dataset.rmk);}));
-document.getElementById("raceReplay").addEventListener("click",()=>startRace(raceMk));
+document.querySelectorAll(".rmk").forEach(b=>b.addEventListener("click",()=>{document.querySelectorAll(".rmk").forEach(x=>x.classList.toggle("active",x===b));setupRace(b.dataset.rmk);}));
+document.getElementById("raceSlider").addEventListener("input",e=>renderRace(+e.target.value/STEP));
 activate("tw");
 </script>
 </body>
