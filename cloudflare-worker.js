@@ -1,88 +1,89 @@
 /**
- * 元大自選股 — 即時報價代理 (Cloudflare Worker)
+ * 元大自選股 — 即時報價中繼 (Cloudflare Worker)
  *
- * 提供 GET /api/quote?codes=2330,2454,...
- * 從證交所 MIS (mis.twse.com.tw) 抓近即時報價，繞過瀏覽器 CORS，
- * 邏輯對齊本機的 server.py：自動分批、z 缺失時用買賣中價/漲跌停估價。
+ * 2026-07 架構調整：TWSE MIS 已封鎖 Cloudflare 出口 IP，Worker 無法直接抓報價。
+ * 改為「本機推送」模式：
+ *   - 家中 Mac 執行 quote_pusher.py，盤中每 20 秒從 TWSE MIS 抓好報價，
+ *     POST /api/push（帶 X-Push-Key 驗證）寫入 KV。
+ *   - 網頁照舊 GET /api/quote?codes=2330,2454,... 讀取，介面與舊版完全相容。
  *
- * 部署：
- *   1. https://dash.cloudflare.com → Workers & Pages → Create Worker
- *   2. 把本檔內容貼上、Deploy，記下網址（例如 https://xxx.your-name.workers.dev）
- *   3. 在 build_html.py 把 QUOTE_WORKER_URL 改成  <你的網址>/api/quote  後重建 HTML
- *
- * 也可用 wrangler：wrangler deploy cloudflare-worker.js
+ * 部署需求（Cloudflare Dashboard）：
+ *   1. KV namespace 綁定：變數名 QUOTES
+ *   2. Secret：PUSH_KEY（與 quote_pusher.py 內的 PUSH_KEY 相同）
  */
-
-const MIS = "https://mis.twse.com.tw/stock/api/getStockInfo.jsp";
-const LANDING = "https://mis.twse.com.tw/stock/index.jsp";
-const BATCH = 40; // 每批檔數（每檔 2 頻道 tse_/otc_，避免 URL 過長 414）
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Methods": "GET, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type",
+  "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type, X-Push-Key",
 };
 
+// KV 內容超過此秒數視為過時（僅影響 stale 標記，仍照樣回傳）
+const STALE_SECS = 120;
+
 export default {
-  async fetch(request) {
+  async fetch(request, env) {
     const url = new URL(request.url);
     if (request.method === "OPTIONS") {
       return new Response(null, { status: 204, headers: CORS });
     }
-    if (!url.pathname.endsWith("/api/quote")) {
-      return json({ error: "not found" }, 404);
-    }
-    const codes = (url.searchParams.get("codes") || "")
-      .split(",").map((s) => s.trim()).filter(Boolean);
-    if (!codes.length) return json({ error: "no codes provided" }, 400);
 
-    try {
-      const cookie = await getCookie();
-      const quotes = {};
-      for (let i = 0; i < codes.length; i += BATCH) {
-        const chunk = codes.slice(i, i + BATCH);
-        const parts = [];
-        for (const c of chunk) { parts.push(`tse_${c}.tw`); parts.push(`otc_${c}.tw`); }
-        const ex = encodeURIComponent(parts.join("|"));
-        const u = `${MIS}?ex_ch=${ex}&json=1&delay=0&_=${Date.now()}`;
-        try {
-          const r = await fetch(u, { headers: misHeaders(cookie) });
-          if (!r.ok) continue;
-          const data = await r.json();
-          mergeQuotes(quotes, data);
-        } catch (e) { /* skip failed batch */ }
-      }
-      return json({
-        quotes,
-        requested: codes,
-        missing: codes.filter((c) => !quotes[c]),
-        fetchedAt: Math.floor(Date.now() / 1000),
-      });
-    } catch (e) {
-      return json({ error: String(e) }, 502);
+    if (url.pathname.endsWith("/api/push") && request.method === "POST") {
+      return handlePush(request, env);
     }
+    if (url.pathname.endsWith("/api/quote")) {
+      return handleQuote(url, env);
+    }
+    return json({ error: "not found" }, 404);
   },
 };
 
-function misHeaders(cookie) {
-  const h = {
-    "User-Agent":
-      "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 " +
-      "(KHTML, like Gecko) Chrome/120.0 Safari/537.36",
-    "Referer": "https://mis.twse.com.tw/stock/index.jsp",
-    "Accept": "application/json, text/plain, */*",
+async function handlePush(request, env) {
+  const key = request.headers.get("X-Push-Key") || "";
+  if (!env.PUSH_KEY || key !== env.PUSH_KEY) {
+    return json({ error: "unauthorized" }, 401);
+  }
+  let body;
+  try {
+    body = await request.json();
+  } catch (e) {
+    return json({ error: "bad json" }, 400);
+  }
+  if (!body || typeof body.quotes !== "object") {
+    return json({ error: "missing quotes" }, 400);
+  }
+  const record = {
+    quotes: body.quotes,
+    pushedAt: Math.floor(Date.now() / 1000),
   };
-  if (cookie) h["Cookie"] = cookie;
-  return h;
+  await env.QUOTES.put("latest", JSON.stringify(record));
+  return json({ ok: true, count: Object.keys(body.quotes).length });
 }
 
-async function getCookie() {
+async function handleQuote(url, env) {
+  const codes = (url.searchParams.get("codes") || "")
+    .split(",").map((s) => s.trim()).filter(Boolean);
+  if (!codes.length) return json({ error: "no codes provided" }, 400);
+
+  let record = null;
   try {
-    const r = await fetch(LANDING, { headers: misHeaders() });
-    const sc = r.headers.get("set-cookie");
-    if (sc) return sc.split(";")[0];
-  } catch (e) { /* best effort */ }
-  return "";
+    const raw = await env.QUOTES.get("latest");
+    if (raw) record = JSON.parse(raw);
+  } catch (e) { /* treat as empty */ }
+
+  const all = (record && record.quotes) || {};
+  const quotes = {};
+  for (const c of codes) if (all[c]) quotes[c] = all[c];
+
+  const pushedAt = record ? record.pushedAt : 0;
+  const now = Math.floor(Date.now() / 1000);
+  return json({
+    quotes,
+    requested: codes,
+    missing: codes.filter((c) => !quotes[c]),
+    fetchedAt: pushedAt || now,
+    stale: !pushedAt || now - pushedAt > STALE_SECS,
+  });
 }
 
 function json(obj, status = 200) {
@@ -90,56 +91,4 @@ function json(obj, status = 200) {
     status,
     headers: { ...CORS, "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store" },
   });
-}
-
-function safeFloat(s) {
-  const v = parseFloat(String(s == null ? "" : s).trim());
-  return isNaN(v) ? null : v;
-}
-
-// 取買賣五檔（'_' 分隔）的第一個正值
-function firstPos(s) {
-  if (!s) return null;
-  for (const p of String(s).split("_")) {
-    const v = safeFloat(p);
-    if (v && v > 0) return v;
-  }
-  return null;
-}
-
-// 估算最新盤中價：z 有效用 z；否則用買賣中價；鎖漲/跌停用 high/low
-function currentPrice(it) {
-  const z = (it.z || "").trim();
-  if (z && z !== "-") {
-    const v = safeFloat(z);
-    if (v && v > 0) return [v, false];
-  }
-  const bid = firstPos(it.b), ask = firstPos(it.a);
-  if (bid && ask) return [Math.round(((bid + ask) / 2) * 10000) / 10000, true];
-  const h = safeFloat(it.h), l = safeFloat(it.l);
-  if (bid && !ask) return [h || bid, true]; // 鎖漲停（無人賣）
-  if (ask && !bid) return [l || ask, true]; // 鎖跌停（無人買）
-  const o = safeFloat(it.o), y = safeFloat(it.y);
-  return [o || y, true];
-}
-
-function mergeQuotes(quotes, data) {
-  for (const it of (data.msgArray || [])) {
-    const code = it.c || "";
-    const [price, est] = currentPrice(it);
-    if (!price || price <= 0) continue;
-    quotes[code] = {
-      price,
-      estimated: est,
-      name: it.n || "",
-      channel: it.ch || "",
-      prevClose: safeFloat(it.y),
-      open: safeFloat(it.o),
-      high: safeFloat(it.h),
-      low: safeFloat(it.l),
-      volume: safeFloat(it.v), // 累積成交量(張)
-      time: it.t || "",
-      tlong: it.tlong || "",
-    };
-  }
 }
