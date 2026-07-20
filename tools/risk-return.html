@@ -69,6 +69,13 @@
   .q-tag{display:inline-block;font-size:10px;padding:1px 6px;border-radius:4px;font-weight:600;}
   .crash-badge{display:inline-block;margin-left:8px;padding:1px 8px;border-radius:4px;font-size:10px;font-weight:700;
     background:rgba(251,113,133,.15);border:1px solid rgba(251,113,133,.45);color:var(--red);letter-spacing:.3px;}
+  .tabs{display:flex;gap:6px;margin:14px 28px 0;border-bottom:1px solid var(--border);}
+  .tab{padding:8px 18px 7px;font-size:12.5px;font-weight:600;cursor:pointer;color:var(--text-muted);
+    background:transparent;border:1px solid transparent;border-bottom:none;border-radius:8px 8px 0 0;
+    font-family:'Noto Sans TC',sans-serif;transition:all .15s;margin-bottom:-1px;}
+  .tab:hover{color:var(--accent);}
+  .tab.active{background:var(--surface);border-color:var(--border);color:var(--accent);}
+  .tab.stress.active{color:var(--red);}
 </style>
 </head>
 <body>
@@ -80,7 +87,7 @@
         <p id="subtitle">持股組合 36 檔 vs 加權指數 · YTD 2026 · 資料截止 2026-07-17<span class="crash-badge">⚠ 7/17 大跌事件</span></p>
       </div>
     </div>
-    <div class="legend-bar">
+    <div class="legend-bar" id="legendBar">
       <span class="legend-item"><span class="dot" style="background:var(--green)"></span>贏大盤·低波動</span>
       <span class="legend-item"><span class="dot" style="background:var(--teal)"></span>贏大盤·高波動</span>
       <span class="legend-item"><span class="dot" style="background:var(--amber)"></span>輸大盤·低波動</span>
@@ -88,10 +95,15 @@
     </div>
   </div>
 
+  <div class="tabs">
+    <button class="tab active" id="tabYtd" onclick="setMode('ytd')">YTD 全年落點</button>
+    <button class="tab stress" id="tabStress" onclick="setMode('stress')">⚠ 壓測 6/23高點→7/17</button>
+  </div>
+
   <div class="controls">
     <span class="ctrl-label">大盤基準</span>
-    <div class="field"><label>YTD報酬%</label><input id="mktRet" type="number" step="0.1" value="47.33"></div>
-    <div class="field"><label>年化波動%</label><input id="mktVol" type="number" step="0.1" value="30.33"></div>
+    <div class="field"><label id="mktRetLabel">YTD報酬%</label><input id="mktRet" type="number" step="0.1" value="47.33"></div>
+    <div class="field"><label id="mktVolLabel">年化波動%</label><input id="mktVol" type="number" step="0.1" value="30.33"></div>
     <span class="ctrl-label" style="margin-left:10px;">縱切線</span>
     <button class="btn" id="divMedian" onclick="setDivider('median')">波動中位數</button>
     <button class="btn active" id="divMkt" onclick="setDivider('mkt')">大盤波動</button>
@@ -108,17 +120,20 @@ const DATA = {"asof":"2026-07-17","market":{"name":"加權指數","ret":47.33,"v
 
 const CSS = getComputedStyle(document.documentElement);
 const C = n => CSS.getPropertyValue(n).trim();
-let showLabels = true, dividerMode = 'mkt', highlight = '';
+let showLabels = true, dividerMode = 'mkt', highlight = '', mode = 'ytd';
 let sortKey = 'ret', sortDir = -1;
+
+const RV = r => mode==='ytd' ? r.ret : r.sret;   // 當前模式的報酬/跌幅
+const VV = r => mode==='ytd' ? r.vol : r.svol;   // 當前模式的波動
 
 function median(arr){const a=[...arr].sort((x,y)=>x-y);const m=Math.floor(a.length/2);return a.length%2?a[m]:(a[m-1]+a[m])/2;}
 function mktRet(){return parseFloat(document.getElementById('mktRet').value)||0;}
 function mktVol(){const v=document.getElementById('mktVol').value;return v===''?null:parseFloat(v);}
-function vDiv(){const mv=mktVol();return (dividerMode==='mkt'&&mv!=null)?mv:median(DATA.rows.map(r=>r.vol));}
+function vDiv(){const mv=mktVol();return (dividerMode==='mkt'&&mv!=null)?mv:median(DATA.rows.map(r=>VV(r)));}
 
 function quadColor(r){
-  const overMkt = r.ret >= mktRet();
-  const hiVol = r.vol >= vDiv();
+  const overMkt = RV(r) >= mktRet();
+  const hiVol = VV(r) >= vDiv();
   if(overMkt && !hiVol) return C('--green');   // 贏大盤·低波動
   if(overMkt && hiVol)  return C('--teal');    // 贏大盤·高波動
   if(!overMkt && !hiVol)return C('--amber');   // 輸大盤·低波動
@@ -152,8 +167,10 @@ const crosshair = {
     ctx.fillText(dividerMode==='mkt'&&mktVol()!=null?'大盤波動':'波動中位數',xDiv,a.top+12);
     // quadrant captions
     ctx.font="700 12px 'Noto Sans TC'";ctx.globalAlpha=.5;
-    ctx.fillStyle=C('--green');ctx.textAlign='left';ctx.fillText('高效率區（贏大盤·低波動）',a.left+8,a.top+30);
-    ctx.fillStyle=C('--red');ctx.textAlign='right';ctx.fillText('警示區（輸大盤·高波動）',a.right-8,a.bottom-10);
+    ctx.fillStyle=C('--green');ctx.textAlign='left';
+    ctx.fillText(mode==='ytd'?'高效率區（贏大盤·低波動）':'抗跌區（跌少於大盤·低波動）',a.left+8,a.top+30);
+    ctx.fillStyle=C('--red');ctx.textAlign='right';
+    ctx.fillText(mode==='ytd'?'警示區（輸大盤·高波動）':'重挫區（跌多於大盤·高波動）',a.right-8,a.bottom-10);
     ctx.globalAlpha=1;ctx.restore();
   }
 };
@@ -161,14 +178,15 @@ function hexA(hex,al){const h=hex.replace('#','');const r=parseInt(h.substr(0,2)
 
 let chart;
 function buildChart(){
-  const pts = DATA.rows.map(r=>({x:r.vol,y:r.ret,r:r}));
+  const pts = DATA.rows.map(r=>({x:VV(r),y:RV(r),r:r}));
   const mv = mktVol();
   const mktPoint = mv!=null ? [{x:mv,y:mktRet(),mkt:true}] : [];
   // explicit axis bounds with headroom so edge points + labels aren't clipped
-  const vols=DATA.rows.map(r=>r.vol).concat(mv!=null?[mv]:[]);
-  const rets=DATA.rows.map(r=>r.ret).concat([mktRet()]);
+  const vols=DATA.rows.map(r=>VV(r)).concat(mv!=null?[mv]:[]);
+  const rets=DATA.rows.map(r=>RV(r)).concat([mktRet()]);
+  const padT=mode==='ytd'?30:10, padB=mode==='ytd'?15:8;
   const xMin=Math.floor((Math.min(...vols)-6)/5)*5, xMax=Math.ceil((Math.max(...vols)+7)/5)*5;
-  const yMin=Math.floor((Math.min(...rets)-15)/10)*10, yMax=Math.ceil((Math.max(...rets)+30)/10)*10;
+  const yMin=Math.floor((Math.min(...rets)-padB)/10)*10, yMax=Math.ceil((Math.max(...rets)+padT)/10)*10;
   const ctx=document.getElementById('chart');
   chart=new Chart(ctx,{
     type:'scatter',
@@ -185,16 +203,23 @@ function buildChart(){
       responsive:true,maintainAspectRatio:false,
       layout:{padding:{top:18,right:54,left:6,bottom:4}},
       scales:{
-        x:{min:xMin,max:xMax,title:{display:true,text:'年化波動度 (%)　→ 風險越高',color:C('--text-muted'),font:{size:12}},
+        x:{min:xMin,max:xMax,title:{display:true,
+          text:mode==='ytd'?'年化波動度 (%)　→ 風險越高':'壓測年化波動度 6/23→7/17 (%)　→ 風險越高',
+          color:C('--text-muted'),font:{size:12}},
           grid:{color:'rgba(28,40,64,.6)'},ticks:{color:C('--text-muted')}},
-        y:{min:yMin,max:yMax,title:{display:true,text:'YTD 報酬率 (%)　→ 表現越好',color:C('--text-muted'),font:{size:12}},
+        y:{min:yMin,max:yMax,title:{display:true,
+          text:mode==='ytd'?'YTD 報酬率 (%)　→ 表現越好':'壓測跌幅 6/23→7/17 (%)　→ 越抗跌',
+          color:C('--text-muted'),font:{size:12}},
           grid:{color:'rgba(28,40,64,.6)'},ticks:{color:C('--text-muted')}}
       },
       plugins:{
         legend:{display:false},
         tooltip:{callbacks:{
           title:c=>c[0].raw.mkt?'加權指數（大盤）':`${c[0].raw.r.code} ${c[0].raw.r.name}`,
-          label:c=>{if(c.raw.mkt)return [`YTD報酬：${mktRet().toFixed(1)}%`,`年化波動：${DATA.market.vol.toFixed(1)}%`,`最大回檔：${DATA.market.mdd.toFixed(1)}%`];const r=c.raw.r;const ex=(r.ret-mktRet()).toFixed(1);
+          label:c=>{if(c.raw.mkt)return mode==='ytd'
+              ?[`YTD報酬：${mktRet().toFixed(1)}%`,`年化波動：${DATA.market.vol.toFixed(1)}%`,`最大回檔：${DATA.market.mdd.toFixed(1)}%`]
+              :[`壓測跌幅：${DATA.stress.ret.toFixed(1)}%（自盤中高點 ${DATA.stress.fromHigh.toFixed(1)}%）`,`壓測波動：${DATA.stress.svol.toFixed(1)}%（高點前 ${DATA.stress.pvol.toFixed(1)}%）`];
+            const r=c.raw.r;const ex=(r.ret-DATA.market.ret).toFixed(1);
             return [`YTD報酬：${r.ret.toFixed(1)}%`,`年化波動：${r.vol.toFixed(1)}%`,`最大回檔：${r.mdd.toFixed(1)}%`,
               `相對大盤：${ex>=0?'+':''}${ex}%`,`報酬/波動：${(r.ret/r.vol).toFixed(2)}`,`價：${r.base}→${r.last}`,
               `── 壓測 6/23→7/17 ──`,`跌幅：${r.sret.toFixed(1)}%`,
@@ -214,11 +239,30 @@ function isHL(r){return highlight && (r.code.includes(highlight)||r.name.include
 
 function renderSummary(){
   const rows=DATA.rows, m=mktRet();
+  const cls=v=>v>=0?'up':'down';
+  if(mode==='stress'){
+    const win=rows.filter(r=>r.sret>m).length;
+    const avg=rows.reduce((s,r)=>s+r.sret,0)/rows.length;
+    const med=median(rows.map(r=>r.sret));
+    const best=rows.reduce((a,b)=>a.sret>b.sret?a:b), worst=rows.reduce((a,b)=>a.sret<b.sret?a:b);
+    const volUp=rows.filter(r=>r.svol>r.pvol).length;
+    document.getElementById('summary').innerHTML=`
+      <div class="si"><span class="si-label">檔數</span><span class="si-val">${rows.length}</span></div>
+      <div class="si"><span class="si-label" style="color:var(--red);">大盤壓測跌幅</span>
+        <span class="si-val down">${m.toFixed(1)}%<span style="color:var(--text-muted);font-size:11px;font-weight:400;">（自盤中高點 ${DATA.stress.fromHigh.toFixed(1)}%）</span></span></div>
+      <div class="si"><span class="si-label">抗跌（優於大盤）</span><span class="si-val up">${win} <span style="color:var(--text-muted);font-size:11px">/ ${rows.length}</span></span></div>
+      <div class="si"><span class="si-label">平均跌幅</span><span class="si-val ${cls(avg)}">${avg.toFixed(1)}%</span></div>
+      <div class="si"><span class="si-label">中位數跌幅</span><span class="si-val ${cls(med)}">${med.toFixed(1)}%</span></div>
+      <div class="si"><span class="si-label">最抗跌</span><span class="si-val up">${best.name} ${best.sret.toFixed(1)}%</span></div>
+      <div class="si"><span class="si-label">最重挫</span><span class="si-val down">${worst.name} ${worst.sret.toFixed(1)}%</span></div>
+      <div class="si"><span class="si-label">波動升高</span><span class="si-val down">${volUp} <span style="color:var(--text-muted);font-size:11px">/ ${rows.length}</span></span></div>
+      <div class="si"><span class="si-label">大盤波動變化</span><span class="si-val down">${DATA.stress.pvol.toFixed(1)}→${DATA.stress.svol.toFixed(1)}%</span></div>`;
+    return;
+  }
   const win=rows.filter(r=>r.ret>m).length;
   const avg=rows.reduce((s,r)=>s+r.ret,0)/rows.length;
   const med=median(rows.map(r=>r.ret));
   const best=rows.reduce((a,b)=>a.ret>b.ret?a:b), worst=rows.reduce((a,b)=>a.ret<b.ret?a:b);
-  const cls=v=>v>=0?'up':'down';
   document.getElementById('summary').innerHTML=`
     <div class="si"><span class="si-label">檔數</span><span class="si-val">${rows.length}</span></div>
     <div class="si"><span class="si-label">大盤 YTD</span><span class="si-val ${cls(m)}">${m>=0?'+':''}${m.toFixed(1)}%</span></div>
@@ -236,30 +280,42 @@ function renderSummary(){
     <div class="si"><span class="si-label">大盤波動變化</span><span class="si-val down">${DATA.stress.pvol.toFixed(1)}→${DATA.stress.svol.toFixed(1)}%</span></div>`:''}`;
 }
 
-const COLS=[['code','代號','l'],['name','名稱','l'],['ret','YTD報酬%','n'],['vol','年化波動%','n'],
-  ['ex','相對大盤%','n'],['eff','報酬/波動','n'],['mdd','最大回檔%','n'],
-  ['sret','壓測跌幅%','n'],['svol','壓測波動%','n'],['dvol','Δ波動','n'],['last','現價','n']];
+function COLS(){
+  return mode==='ytd'
+    ?[['code','代號','l'],['name','名稱','l'],['ret','YTD報酬%','n'],['vol','年化波動%','n'],
+      ['ex','相對大盤%','n'],['eff','報酬/波動','n'],['mdd','最大回檔%','n'],
+      ['sret','壓測跌幅%','n'],['svol','壓測波動%','n'],['dvol','Δ波動','n'],['last','現價','n']]
+    :[['code','代號','l'],['name','名稱','l'],['sret','壓測跌幅%','n'],['ex','相對大盤%','n'],
+      ['svol','壓測波動%','n'],['pvol','高點前波動%','n'],['dvol','Δ波動','n'],
+      ['ret','YTD報酬%','n'],['mdd','YTD回檔%','n'],['last','現價','n']];
+}
 function renderTable(){
   const thead=document.querySelector('#tbl thead'), tbody=document.querySelector('#tbl tbody');
-  thead.innerHTML='<tr>'+COLS.map(c=>`<th class="${c[2]==='l'?'l':''}" onclick="sortBy('${c[0]}')">${c[1]}${sortKey===c[0]?(sortDir<0?' ▼':' ▲'):''}</th>`).join('')+'</tr>';
+  const cols=COLS();
+  thead.innerHTML='<tr>'+cols.map(c=>`<th class="${c[2]==='l'?'l':''}" onclick="sortBy('${c[0]}')">${c[1]}${sortKey===c[0]?(sortDir<0?' ▼':' ▲'):''}</th>`).join('')+'</tr>';
   const m=mktRet();
-  const rows=DATA.rows.map(r=>({...r,ex:r.ret-m,eff:r.ret/r.vol,dvol:r.svol-r.pvol}));
+  const rows=DATA.rows.map(r=>({...r,ex:RV(r)-m,eff:r.ret/r.vol,dvol:r.svol-r.pvol}));
   rows.sort((a,b)=>{const va=a[sortKey],vb=b[sortKey];return typeof va==='string'?sortDir*va.localeCompare(vb):sortDir*(va-vb);});
-  tbody.innerHTML=rows.map(r=>{
-    const hl=isHL(r)?' hl':'';
-    const sgn=v=>v>=0?'up':'down', f=(v,d=1)=>(v>=0?'+':'')+v.toFixed(d);
-    return `<tr class="row${hl}">
-      <td class="l code">${r.code}</td><td class="l name">${r.name}</td>
-      <td class="num ${sgn(r.ret)}">${f(r.ret)}</td>
-      <td class="num">${r.vol.toFixed(1)}</td>
-      <td class="num ${sgn(r.ex)}">${f(r.ex)}</td>
-      <td class="num">${r.eff.toFixed(2)}</td>
-      <td class="num down">${r.mdd.toFixed(1)}</td>
-      <td class="num ${sgn(r.sret)}">${f(r.sret)}</td>
-      <td class="num">${r.svol.toFixed(1)}</td>
-      <td class="num ${r.dvol>=0?'down':'up'}">${f(r.dvol)}</td>
-      <td class="num">${r.last}</td></tr>`;
-  }).join('');
+  const sgn=v=>v>=0?'up':'down', f=(v,d=1)=>(v>=0?'+':'')+v.toFixed(d);
+  const cell=(r,k)=>{
+    switch(k){
+      case 'code': return `<td class="l code">${r.code}</td>`;
+      case 'name': return `<td class="l name">${r.name}</td>`;
+      case 'ret':  return `<td class="num ${sgn(r.ret)}">${f(r.ret)}</td>`;
+      case 'vol':  return `<td class="num">${r.vol.toFixed(1)}</td>`;
+      case 'ex':   return `<td class="num ${sgn(r.ex)}">${f(r.ex)}</td>`;
+      case 'eff':  return `<td class="num">${r.eff.toFixed(2)}</td>`;
+      case 'mdd':  return `<td class="num down">${r.mdd.toFixed(1)}</td>`;
+      case 'sret': return `<td class="num ${sgn(r.sret)}">${f(r.sret)}</td>`;
+      case 'svol': return `<td class="num">${r.svol.toFixed(1)}</td>`;
+      case 'pvol': return `<td class="num">${r.pvol.toFixed(1)}</td>`;
+      case 'dvol': return `<td class="num ${r.dvol>=0?'down':'up'}">${f(r.dvol)}</td>`;
+      case 'last': return `<td class="num">${r.last}</td>`;
+    }
+  };
+  tbody.innerHTML=rows.map(r=>
+    `<tr class="row${isHL(r)?' hl':''}">`+cols.map(c=>cell(r,c[0])).join('')+'</tr>'
+  ).join('');
 }
 function sortBy(k){if(sortKey===k)sortDir*=-1;else{sortKey=k;sortDir=(k==='code'||k==='name')?1:-1;}renderTable();}
 
@@ -268,6 +324,27 @@ function refresh(){if(chart)chart.destroy();buildChart();renderSummary();renderT
     (DATA.stress?`<span class="crash-badge">⚠ 7/17 大跌事件</span>`:'');}
 function setDivider(m){dividerMode=m;document.getElementById('divMedian').classList.toggle('active',m==='median');
   document.getElementById('divMkt').classList.toggle('active',m==='mkt');refresh();}
+function setMode(m){
+  if(mode===m)return;
+  mode=m;
+  document.getElementById('tabYtd').classList.toggle('active',m==='ytd');
+  document.getElementById('tabStress').classList.toggle('active',m==='stress');
+  const set=(id,v)=>document.getElementById(id).value=v, lbl=(id,t)=>document.getElementById(id).textContent=t;
+  if(m==='ytd'){
+    set('mktRet',DATA.market.ret);set('mktVol',DATA.market.vol);
+    lbl('mktRetLabel','YTD報酬%');lbl('mktVolLabel','年化波動%');
+    sortKey='ret';sortDir=-1;
+  }else{
+    set('mktRet',DATA.stress.ret);set('mktVol',DATA.stress.svol);
+    lbl('mktRetLabel','壓測跌幅%');lbl('mktVolLabel','壓測波動%');
+    sortKey='sret';sortDir=1;   // 最重挫排最前
+  }
+  const L=(c,t)=>`<span class="legend-item"><span class="dot" style="background:var(--${c})"></span>${t}</span>`;
+  document.getElementById('legendBar').innerHTML=m==='ytd'
+    ?L('green','贏大盤·低波動')+L('teal','贏大盤·高波動')+L('amber','輸大盤·低波動')+L('red','輸大盤·高波動')
+    :L('green','抗跌·低波動')+L('teal','抗跌·高波動')+L('amber','重挫·低波動')+L('red','重挫·高波動');
+  refresh();
+}
 function toggleLabels(){showLabels=!showLabels;document.getElementById('lblBtn').textContent='標籤：'+(showLabels?'開':'關');chart.update();}
 function onSearch(){highlight=document.getElementById('search').value.trim();chart.update();renderTable();}
 document.getElementById('mktRet').addEventListener('input',refresh);
