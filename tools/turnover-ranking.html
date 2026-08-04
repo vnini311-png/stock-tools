@@ -84,7 +84,7 @@
 <body>
 <div class="toolbar">
   <a class="backbtn" href="../index.html">&#8592; 返回工具列</a>
-  <div class="ttl">成交值排行榜 Dashboard<span class="sub">台股 2026/08/04 ・ 美股 2026/06/17 ・ Top 20 ・ 含較前日變化</span></div>
+  <div class="ttl">成交值排行榜 Dashboard<span class="sub">台股 2026/08/04 ・ 美股 2026/08/03 ・ Top 20 ・ 含較前日變化</span></div>
   <div class="tabs">
     <button class="tab active" data-mk="tw"><span class="d" style="background:var(--tw)"></span>台股</button>
     <button class="tab" data-mk="us"><span class="d" style="background:var(--us)"></span>美股</button>
@@ -146,11 +146,11 @@
       <div class="rticks" id="raceTicks"></div>
     </div>
     <div class="racearea" id="raceArea"></div>
-    <div class="racehint">拖動上方滑桿即可沿時間軸檢視名次變化；柱長 = 當日成交值，顏色 = 產業。台股 7/28→8/04（6 日）、美股 6/14→6/17（4 日）。</div>
+    <div class="racehint">拖動上方滑桿即可沿時間軸檢視名次變化；柱長 = 當日成交值，顏色 = 產業。台股 7/28→8/04（6 日）、美股 7/27→8/03（6 日）。</div>
   </div>
 </div>
 
-<div class="foot">資料來源：上班族型交易者 APP・成交值排行榜。台股基準 2026-07-28，美股基準 2026-06-15。</div>
+<div class="foot">資料來源：上班族型交易者 APP・成交值排行榜。台股基準 2026-07-28，美股基準 2026-07-27。</div>
 
 <script>
 // 每日快照：要新增一天，於對應市場物件加一筆 "YYYY/MM/DD":[ [名稱,代號,產業,成交值], ... ]
@@ -212,42 +212,61 @@ const TW_DAILY={
  ]
 };
 const US_DAILY={
- "2026/06/14":[
-  ["美光科技","MU","記憶體",402],["特斯拉","TSLA","電動車",259],["輝達","NVDA","Semiconductors",231],
-  ["英特爾","INTC","Semiconductors",189],["超微半導體","AMD","Semiconductors",162],["微軟","MSFT","Technology",137],
-  ["亞馬遜","AMZN","Consumer Discretionary",122],["邁威爾科技","MRVL","Semiconductors",118],["蘋果","AAPL","Technology",113],
-  ["博通","AVGO","Semiconductors",106],["Alphabet","GOOGL","Communication Services",89],["Meta","META","Communication Services",81],
-  ["Rocket Lab","RKLB","Industrials",65],["Alphabet","GOOG","Communication Services",63],["安謀控股","ARM","Semiconductors",63],
-  ["EchoStar","SATS","Communication Services",57],["甲骨文","ORCL","Technology",54],["Adobe","ADBE","Technology",51],
-  ["艾司摩爾控股","ASML","Semiconductors",47],["應用材料","AMAT","Semiconductors",46]
+ "2026/07/27":[
+ ["美光科技","MU","記憶體",428.4],["輝達","NVDA","GPU/CPU",303.3],["SanDisk","SNDK","記憶體",272],
+ ["蘋果","AAPL","終端裝置",167.1],["超微半導體","AMD","GPU/CPU",157.4],["特斯拉","TSLA","電動車",138.9],
+ ["英特爾","INTC","半導體",122.1],["微軟","MSFT","M7、AI雲端",108.4],["Alphabet","GOOGL","M7、AI雲端",93],
+ ["亞馬遜","AMZN","M7、AI雲端",81],["Space Exploration Technologies","SPCX","科技",73.3],["SK hynix","SKHY","科技",72.6],
+ ["台積電ADR","TSM","半導體",71.6],["博通","AVGO","半導體",70.9],["Alphabet","GOOG","M7、AI雲端",69.9],
+ ["Meta","META","M7、AI雲端",66.5],["艾司摩爾","ASML","半導體設備",55],["Palantir","PLTR","國防 AI",48.3],
+ ["甲骨文","ORCL","AI雲端",44.3],["應用材料","AMAT","半導體設備",41.4]
  ],
- "2026/06/15":[
- ["美光科技","MU","記憶體",489.6],["輝達","NVDA","GPU/CPU",318.5],["特斯拉","TSLA","Consumer Discretionary",187.6],
- ["超微半導體","AMD","GPU、ASIC",183.3],["英特爾","INTC","CHIPS",171.8],["邁威爾科技","MRVL","Semiconductors",169.8],
- ["蘋果","AAPL","終端裝置",135.6],["微軟","MSFT","M7、AI雲端",129],["博通","AVGO","Semiconductors",127.6],
- ["臉書","META","M7、AI雲端",104.8],["亞馬遜","AMZN","M7、AI雲端",102.6],["Alphabet","GOOGL","M7、AI雲端",102.4],
- ["應用材料","AMAT","半導體供應鏈",68.4],["Alphabet","GOOG","M7、AI雲端",63.4],["Western Digital","WDC","記憶體",62.2],
- ["Seagate Technology","STX","記憶體",58.8],["安謀控股","ARM","CPU",57.9],["Palantir Technologies","PLTR","國防 AI",56.2],
- ["科林研發","LRCX","Semiconductors",52.3],["Lumentum","LITE","CPO 光通訊",50.4]
+ "2026/07/28":[
+ ["美光科技","MU","記憶體",500.8],["SanDisk","SNDK","記憶體",291.9],["輝達","NVDA","GPU/CPU",264.2],
+ ["蘋果","AAPL","終端裝置",176.4],["超微半導體","AMD","GPU/CPU",165.1],["英特爾","INTC","半導體",133.2],
+ ["微軟","MSFT","M7、AI雲端",127.3],["特斯拉","TSLA","電動車",122.4],["亞馬遜","AMZN","M7、AI雲端",102.8],
+ ["Alphabet","GOOGL","M7、AI雲端",98.5],["Space Exploration Technologies","SPCX","科技",95.1],["博通","AVGO","半導體",77.4],
+ ["台積電ADR","TSM","半導體",71.7],["Meta","META","M7、AI雲端",71.3],["Alphabet","GOOG","M7、AI雲端",69.8],
+ ["希捷","STX","記憶體",66.8],["SK hynix","SKHY","科技",66.5],["Corning Incorporated","GLW","工業",58.2],
+ ["Palantir","PLTR","國防 AI",53.9],["邁威爾科技","MRVL","半導體",50.9]
  ],
- "2026/06/16":[
- ["美光科技","MU","記憶體",464.4],["輝達","NVDA","GPU/CPU",260.7],["邁威爾科技","MRVL","Semiconductors",165.1],
- ["特斯拉","TSLA","電動車、算力出租",162.9],["英特爾","INTC","chips",155.6],["超微半導體","AMD","GPU/CPU",144.1],
- ["微軟","MSFT","Technology",124.1],["蘋果","AAPL","Technology",119.3],["博通","AVGO","Semiconductors",118.9],
- ["Western Digital","WDC","記憶體",108],["Alphabet","GOOGL","M7、AI雲端",92.8],["亞馬遜","AMZN","M7、AI雲端",86.6],
- ["臉書","META","M7+廣告",68.1],["應用材料","AMAT","Semiconductors",62],["Alphabet","GOOG","M7、AI雲端",61.2],
- ["Seagate Technology","STX","記憶體",59.9],["Lumentum","LITE","CPO 光通訊",53.1],["Netflix","NFLX","Communication Services",51.2],
- ["安謀控股","ARM","Semiconductors",49.2],["台積電","TSM","Semiconductors",47.2]
+ "2026/07/29":[
+ ["美光科技","MU","記憶體",516.2],["輝達","NVDA","GPU/CPU",280.6],["SanDisk","SNDK","記憶體",248.8],
+ ["蘋果","AAPL","終端裝置",189.7],["微軟","MSFT","M7、AI雲端",184.4],["超微半導體","AMD","GPU/CPU",138.8],
+ ["Meta","META","M7、AI雲端",131],["英特爾","INTC","半導體",124.8],["特斯拉","TSLA","電動車",117.8],
+ ["亞馬遜","AMZN","M7、AI雲端",101.9],["Alphabet","GOOGL","M7、AI雲端",92.6],["SK hynix","SKHY","科技",83.4],
+ ["台積電ADR","TSM","半導體",81.3],["博通","AVGO","半導體",79.2],["Bloom Energy","BE","能源",72.5],
+ ["希捷","STX","記憶體",70.9],["Alphabet","GOOG","M7、AI雲端",68],["Space Exploration Technologies","SPCX","科技",60.8],
+ ["Nebius","NBIS","AI雲端",59],["Vertiv","VRT","電源/散熱",47.4]
  ],
- "2026/06/17":[
- ["美光科技","MU","Semiconductors",482.2],["輝達","NVDA","Semiconductors",263.8],["特斯拉","TSLA","Consumer Discretionary",172.6],
- ["微軟","MSFT","Technology",159.1],["博通","AVGO","Semiconductors",157.2],["邁威爾科技","MRVL","Semiconductors",146.5],
- ["英特爾","INTC","Semiconductors",139.7],["超微半導體","AMD","Semiconductors",138.8],["蘋果","AAPL","Technology",126.5],
- ["臉書","META","Communication Services",116.2],["亞馬遜","AMZN","Consumer Discretionary",106.4],["Western Digital","WDC","Technology",96.6],
- ["Alphabet","GOOGL","Communication Services",89.3],["Robinhood Markets","HOOD","Financials",74.5],["Nebius Group N.V.","NBIS","Technology",68.5],
- ["應用材料","AMAT","Semiconductors",65.5],["Alphabet","GOOG","Communication Services",58],["安謀控股","ARM","Semiconductors",49],
- ["Seagate Technology","STX","Technology",49],["台積電","TSM","Semiconductors",47.3]
- ]};
+ "2026/07/30":[
+ ["美光科技","MU","記憶體",551.7],["微軟","MSFT","M7、AI雲端",496.9],["SanDisk","SNDK","記憶體",312.3],
+ ["輝達","NVDA","GPU/CPU",251.6],["蘋果","AAPL","終端裝置",249.5],["亞馬遜","AMZN","M7、AI雲端",239.8],
+ ["Meta","META","M7、AI雲端",227.9],["超微半導體","AMD","GPU/CPU",179.3],["英特爾","INTC","半導體",127.9],
+ ["特斯拉","TSLA","電動車",117.4],["Alphabet","GOOGL","M7、AI雲端",100.7],["博通","AVGO","半導體",91.7],
+ ["Nebius","NBIS","AI雲端",79.7],["SK hynix","SKHY","科技",78.8],["Bloom Energy","BE","能源",73.1],
+ ["台積電ADR","TSM","半導體",70.5],["科林研發","LRCX","半導體設備",65.8],["希捷","STX","記憶體",62.9],
+ ["Space Exploration Technologies","SPCX","科技",62.8],["應用材料","AMAT","半導體設備",61]
+ ],
+ "2026/07/31":[
+ ["美光科技","MU","記憶體",448.9],["蘋果","AAPL","終端裝置",409.3],["亞馬遜","AMZN","M7、AI雲端",350.5],
+ ["微軟","MSFT","M7、AI雲端",282.8],["輝達","NVDA","GPU/CPU",281],["SanDisk","SNDK","記憶體",257.3],
+ ["Alphabet","GOOGL","M7、AI雲端",165.6],["Meta","META","M7、AI雲端",135.1],["超微半導體","AMD","GPU/CPU",126.7],
+ ["特斯拉","TSLA","電動車",114],["Alphabet","GOOG","M7、AI雲端",108.8],["英特爾","INTC","半導體",98.4],
+ ["博通","AVGO","半導體",79.4],["SK hynix","SKHY","科技",66.2],["Space Exploration Technologies","SPCX","科技",63.8],
+ ["AppLovin","APP","軟體",61.2],["希捷","STX","記憶體",52.5],["Western Digital","WDC","記憶體",51.8],
+ ["邁威爾科技","MRVL","半導體",50.3],["Nebius","NBIS","AI雲端",48.9]
+ ],
+ "2026/08/03":[
+ ["美光科技","MU","記憶體",350.8],["微軟","MSFT","M7、AI雲端",325],["輝達","NVDA","GPU/CPU",264.8],
+ ["亞馬遜","AMZN","M7、AI雲端",256.5],["蘋果","AAPL","終端裝置",227],["SanDisk","SNDK","記憶體",188.2],
+ ["Meta","META","M7、AI雲端",152.8],["Alphabet","GOOGL","M7、AI雲端",144.2],["特斯拉","TSLA","電動車",123],
+ ["超微半導體","AMD","GPU/CPU",117.5],["Alphabet","GOOG","M7、AI雲端",100.9],["Palantir","PLTR","國防 AI",91],
+ ["英特爾","INTC","半導體",87.5],["Space Exploration Technologies","SPCX","科技",80],["甲骨文","ORCL","AI雲端",70.3],
+ ["博通","AVGO","半導體",67.8],["Nebius","NBIS","AI雲端",60.6],["台積電ADR","TSM","半導體",51.3],
+ ["希捷","STX","記憶體",44.2],["Western Digital","WDC","記憶體",43.5]
+ ]
+};
 
 const PALETTE=["#f0883e","#58a6ff","#3fb950","#bc8cff","#ff7b72","#56d4dd","#e3b341","#db61a2","#79c0ff","#7ee787","#ffa657","#d2a8ff","#a5d6ff","#f778ba","#56d364"];
 Chart.defaults.color="#8b949e";
