@@ -499,6 +499,7 @@ function getFiltered() {
   else if (currentSort === 'opm_improve') list.sort((a,b) => (deltaPP(b,'opm') ?? NEG) - (deltaPP(a,'opm') ?? NEG));
   else if (currentSort === 'name') list.sort((a,b) => a.name.localeCompare(b.name, 'zh-TW'));
   else if (currentSort === 'fresh') list.sort((a,b) => (isFresh(b)?1:0) - (isFresh(a)?1:0));
+  else list.sort((a,b) => (isFresh(b)?1:0) - (isFresh(a)?1:0));  // 預設：已公布最新季者排前（組內保持原順序）
   return list;
 }
 
