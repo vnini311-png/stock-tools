@@ -41,7 +41,7 @@ INDUSTRY_MAP = {
     "3017": "散熱", "3260": "記憶體", "2382": "AI伺服器",
     "5483": "矽晶圓", "2360": "檢測設備", "3661": "IC設計", "2379": "IC設計",
     "2357": "品牌廠", "3529": "矽智財", "7769": "半導體設備", "3665": "連接器",
-    "2301": "電源/散熱", "2368": "PCB",
+    "2301": "電源/散熱", "2368": "PCB", "2455": "化合物半導體",
 }
 
 UA = {"User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)"}
@@ -229,7 +229,7 @@ def do_push(msg):
     if c.returncode != 0:
         print("git commit：沒有變更，跳過 push")
         return
-    git("pull", "--rebase")
+    git("pull", "--rebase", "--autostash")
     git("push")
     print("已 push 至 GitHub Pages")
 
