@@ -72,6 +72,7 @@
   .rrk{width:24px;text-align:right;color:var(--muted);font-size:12px;font-variant-numeric:tabular-nums;flex:none}
   .rnm{width:120px;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:none}
   .rnm .code{color:var(--muted);font-size:10px;margin-left:3px}
+  .rnm .rmv{font-size:10px;margin-left:4px}
   .rtk{position:relative;flex:1;height:20px}
   .rfl{position:absolute;left:0;top:0;height:20px;border-radius:0 4px 4px 0;min-width:2px}
   .rvl{position:absolute;top:0;height:20px;line-height:20px;font-size:11px;font-weight:700;font-variant-numeric:tabular-nums;padding:0 6px;white-space:nowrap}
@@ -356,10 +357,11 @@ function setupRace(rmk){
   area.innerHTML=""; const rows={};
   codes.forEach(c=>{
     const el=document.createElement("div"); el.className="rrow"; el.style.opacity=0; el.style.transform="translateY("+((N-1)*rowH)+"px)";
-    el.innerHTML='<div class="rrk"></div><div class="rnm">'+meta[c].n+'<span class="code">'+meta[c].c+'</span></div><div class="rtk"><div class="rfl" style="background:'+cmap[meta[c].ind]+'"></div><div class="rvl"></div></div>';
-    area.appendChild(el); rows[c]={el,rk:el.querySelector(".rrk"),fl:el.querySelector(".rfl"),vl:el.querySelector(".rvl")};
+    el.innerHTML='<div class="rrk"></div><div class="rnm">'+meta[c].n+'<span class="code">'+meta[c].c+'</span><span class="rmv"></span></div><div class="rtk"><div class="rfl" style="background:'+cmap[meta[c].ind]+'"></div><div class="rvl"></div></div>';
+    area.appendChild(el); rows[c]={el,rk:el.querySelector(".rrk"),fl:el.querySelector(".rfl"),vl:el.querySelector(".rvl"),mv:el.querySelector(".rmv")};
   });
-  raceState={days,L,vmaps,codes,rows,gmax,N,rowH,cur};
+  const ranks=vmaps.map(m=>{const rm={};Object.entries(m).sort((a,b)=>b[1]-a[1]).forEach(([c],i)=>rm[c]=i+1);return rm;});
+  raceState={days,L,vmaps,codes,rows,gmax,N,rowH,cur,ranks};
   const ticks=document.getElementById("raceTicks");
   ticks.innerHTML=days.map((d,ix)=>'<span class="rtick" data-ix="'+ix+'">'+fmtDay(d)+'</span>').join("");
   ticks.querySelectorAll(".rtick").forEach(el=>el.addEventListener("click",()=>{const v=(+el.dataset.ix)*STEP;document.getElementById("raceSlider").value=v;renderRace(+el.dataset.ix);}));
@@ -368,13 +370,20 @@ function setupRace(rmk){
 }
 function renderRace(pos){
   if(!raceState)return;
-  const {days,L,vmaps,codes,rows,gmax,N,rowH,cur}=raceState;
+  const {days,L,vmaps,codes,rows,gmax,N,rowH,cur,ranks}=raceState;
   pos=Math.max(0,Math.min(L-1,pos));
   const ii=Math.min(L-1,Math.floor(pos)), frac=pos-ii;
+  const rd=Math.round(pos);
   const cur2=codes.map(c=>{const a=vmaps[ii][c]||0,b=(ii<L-1?vmaps[ii+1][c]||0:a);return {c,v:a+(b-a)*frac};});
   cur2.sort((x,y)=>y.v-x.v);
   cur2.forEach((o,idx)=>{const R=rows[o.c];
     if(idx<N&&o.v>0.01){R.el.style.opacity=1;R.el.style.transform="translateY("+(idx*rowH)+"px)";R.rk.textContent=idx+1;
+      let sym="",cls="";
+      const rNow=ranks[rd][o.c];
+      if(rd>0&&rNow){const rPrev=ranks[rd-1][o.c];
+        if(rPrev===undefined||rNow<rPrev){sym="▲";cls="up";}
+        else if(rNow>rPrev){sym="▼";cls="down";}}
+      R.mv.textContent=sym;R.mv.className="rmv "+cls;
       const pct=Math.max(.4,o.v/gmax*100);R.fl.style.width=pct+"%";
       if(pct>14){R.vl.style.left="auto";R.vl.style.right=(100-pct)+"%";R.vl.style.color="#10151c";}
       else{R.vl.style.right="auto";R.vl.style.left=pct+"%";R.vl.style.color="var(--txt)";}
