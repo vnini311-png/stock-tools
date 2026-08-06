@@ -65,6 +65,7 @@ US_NAME_MAP = {
     "V": "Visa", "MA": "萬事達", "BAC": "美國銀行", "CRM": "Salesforce",
     "UBER": "優步", "BA": "波音", "DIS": "迪士尼", "GE": "奇異", "CAT": "開拓重工",
     "VST": "Vistra", "CEG": "Constellation", "OKLO": "Oklo", "APP": "AppLovin",
+    "SPCX": "SpaceX",
 }
 US_INDUSTRY_MAP = {
     "MU": "記憶體", "WDC": "記憶體", "STX": "記憶體", "SNDK": "記憶體",
@@ -78,7 +79,8 @@ US_INDUSTRY_MAP = {
     "LITE": "光通訊", "COHR": "光通訊", "ANET": "網通", "CLS": "AI硬體",
     "CRDO": "AI硬體", "ALAB": "AI硬體", "SMCI": "AI伺服器", "DELL": "AI伺服器",
     "VRT": "電源/散熱", "CRWD": "資安", "IBM": "軟體", "ADBE": "軟體", "CRM": "軟體",
-    "VST": "電力", "CEG": "電力", "OKLO": "電力", "RKLB": "太空", "SATS": "通訊",
+    "VST": "電力", "CEG": "電力", "OKLO": "電力", "RKLB": "太空", "SPCX": "太空",
+    "SATS": "通訊",
     "UNH": "醫療保險", "LLY": "製藥", "JPM": "金融", "BAC": "金融",
     "V": "支付", "MA": "支付", "XOM": "能源", "WMT": "零售", "COST": "零售",
     "UBER": "平台", "BA": "航太", "DIS": "媒體", "APP": "軟體",
