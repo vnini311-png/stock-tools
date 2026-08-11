@@ -41,6 +41,7 @@
   .cell:hover{transform:translateY(-1px);box-shadow:0 0 0 1px var(--acc);}
   .cell .nm{font-size:12px;font-weight:600;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
   .cell .cd{font-size:10px;color:rgba(255,255,255,.6);font-family:ui-monospace,monospace;}
+  .cell .lp{font-size:12px;font-weight:600;color:rgba(255,255,255,.92);}
   .cell .pc{font-size:14px;font-weight:700;color:#fff;margin-top:2px;}
   .cell .ex{font-size:10px;color:rgba(255,255,255,.55);}
   /* tabs */
@@ -223,6 +224,7 @@ function heatColor(p){
   let c=[31,191,117];t=-t;return `rgb(${lerp(base[0],c[0],t)},${lerp(base[1],c[1],t)},${lerp(base[2],c[2],t)})`;
 }
 function fmtPct(p){return (p>=0?'+':'')+p.toFixed(2)+'%';}
+function lastPx(code){const c=DATA[code].c;const v=c[c.length-1];return v>=1000?String(Math.round(v)):String(Math.round(v*100)/100);}
 
 const industries={};
 ORDER.forEach(c=>{const k=DATA[c].ind||'未分類';(industries[k]=industries[k]||[]).push(c);});
@@ -259,7 +261,7 @@ function renderHeat(mode){
     document.getElementById('heatSub').textContent=arr.length+' 檔 · 點擊看下方K線';
     arr.forEach(x=>{
       heatGrid.appendChild(cellEl(
-        `<div class="nm">${DATA[x.c].name}</div><div class="cd">${x.c}</div><div class="pc">${fmtPct(x.p)}</div>`,
+        `<div class="nm">${DATA[x.c].name}</div><div class="cd">${x.c} · <span class="lp">${lastPx(x.c)}</span></div><div class="pc">${fmtPct(x.p)}</div>`,
         heatColor(x.p),()=>{selectStock(x.c);}));
     });
   }
