@@ -277,6 +277,39 @@
   .panel { display: none; }
   .panel.active { display: block; }
 
+  /* ── HOLDING SNAPSHOT TABS ── */
+  .snap-tabs {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 18px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+  .snap-tab {
+    padding: 6px 14px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text-muted);
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.04em;
+    cursor: pointer;
+    transition: color 0.15s, border-color 0.15s, background 0.15s;
+  }
+  .snap-tab:hover { color: var(--text); }
+  .snap-tab.active {
+    color: var(--port-accent);
+    border-color: var(--port-accent);
+    background: var(--port-glow);
+  }
+  .snap-hint {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--text-dim);
+    margin-left: 4px;
+  }
+
   /* ── INDUSTRY STRIP ── */
   .ind-strip {
     margin-bottom: 28px;
@@ -815,11 +848,13 @@
 
     <!-- Holdings panel -->
     <div class="panel active" id="panel-holdings">
+    <div class="snap-tabs" id="snap-tabs" style="display:none"></div>
     <section>
       <div class="sec-head">
-        <h2>目前持股 <span class="count" id="holdings-count"></span></h2>
+        <h2 id="holdings-title">目前持股 <span class="count" id="holdings-count"></span></h2>
         <div class="sec-tools">
           <input type="search" id="hold-search" placeholder="搜尋名稱/代號">
+          <button class="btn" id="btn-snapshot" title="把目前持股封存成今天日期的快照">封存快照</button>
         </div>
       </div>
       <div class="table-wrap">
@@ -1247,6 +1282,7 @@ function uid() {
 function normalizeState(s) {
   if (!Array.isArray(s.trades)) s.trades = [];
   if (!Array.isArray(s.holdings)) s.holdings = [];
+  if (!Array.isArray(s.holdingSnapshots)) s.holdingSnapshots = [];
   if (!s.settings) s.settings = defaultState().settings;
   s.trades.forEach(t => {
     if (!t.id) t.id = uid();
@@ -1392,13 +1428,13 @@ async function tryLogin() {
 }
 
 // ─────────────────── RENDER ───────────────────
-function computeKpi() {
+function computeKpi(holdingsArr) {
   const sells = state.trades.filter(t => t.side === 'sell');
   const realized = sells.reduce((s, t) => s + (Number(t.realizedPnl) || 0), 0);
   const wins = sells.filter(t => Number(t.realizedPnl) > 0).length;
   const winRate = sells.length ? wins / sells.length : 0;
 
-  const holds = state.holdings.map(h => {
+  const holds = (holdingsArr || state.holdings).map(h => {
     const mv = h.shares * h.currentPrice;
     const cost = h.shares * h.avgCost;
     const upl = mv - cost;
@@ -1435,6 +1471,9 @@ function renderKpi(k) {
 
 let holdSort = { key: 'marketValue', dir: -1 };
 function renderHoldings(k) {
+  const readOnly = snapView !== 'current';
+  document.getElementById('holdings-title').innerHTML =
+    (readOnly ? `持股快照 ${snapView} ` : '目前持股 ') + `<span class="count" id="holdings-count"></span>`;
   const search = document.getElementById('hold-search').value.toLowerCase().trim();
   let rows = k.holds.map(h => ({ ...h, weight: k.totalMv > 0 ? h.marketValue / k.totalMv : 0 }));
   if (search) rows = rows.filter(h => (h.name || '').toLowerCase().includes(search) || (h.code || '').toLowerCase().includes(search));
@@ -1462,14 +1501,14 @@ function renderHoldings(k) {
           <td>${indTag}</td>
           <td class="num">${fmt.int(h.shares)}</td>
           <td class="num">${fmt.num(h.avgCost, 2)}</td>
-          <td class="num"><input type="number" class="inline-price" data-hid="${h.id}" value="${h.currentPrice}" step="0.01"></td>
+          <td class="num">${readOnly ? fmt.num(h.currentPrice, 2) : `<input type="number" class="inline-price" data-hid="${h.id}" value="${h.currentPrice}" step="0.01">`}</td>
           <td class="num">${fmt.int(h.marketValue)}</td>
           <td class="num ${upCls}">${fmt.signed(h.unrealizedPnl)}</td>
           <td class="num ${upCls}">${fmt.signedPct(h.unrealizedPct)}</td>
           <td class="num">${fmt.num(h.weight * 100, 1)}%</td>
           <td class="num ${staleCls}">${fmt.ago(h.priceUpdatedAt)}</td>
           <td class="num"><div class="row-actions">
-            <button class="row-btn" data-edit-hold="${h.id}">編輯</button>
+            ${readOnly ? '' : `<button class="row-btn" data-edit-hold="${h.id}">編輯</button>`}
           </div></td>
         </tr>
       `;
@@ -1692,14 +1731,51 @@ function renderAll() {
   document.getElementById('year-label').textContent = state.year || new Date().getFullYear();
   const k = computeKpi();
   renderKpi(k);
-  renderIndustryStrip(k);
-  renderPieChart(k);
-  renderHoldings(k);
+  const kv = snapView === 'current' ? k : computeKpi(getSnapshot(snapView)?.holdings || []);
+  renderSnapTabs();
+  renderIndustryStrip(kv);
+  renderPieChart(kv);
+  renderHoldings(kv);
   renderTrades();
   renderSortIndicators();
   document.getElementById('tab-holdings-count').textContent = state.holdings.length;
   document.getElementById('tab-trades-count').textContent = state.trades.length;
 }
+
+// ─────────────────── HOLDING SNAPSHOTS ───────────────────
+let snapView = 'current';
+
+function getSnapshot(date) {
+  return (state.holdingSnapshots || []).find(s => s.date === date) || null;
+}
+
+function renderSnapTabs() {
+  const bar = document.getElementById('snap-tabs');
+  const snaps = (state.holdingSnapshots || []).slice().sort((a, b) => a.date.localeCompare(b.date));
+  if (!snaps.length) { bar.style.display = 'none'; if (snapView !== 'current') snapView = 'current'; return; }
+  if (snapView !== 'current' && !getSnapshot(snapView)) snapView = 'current';
+  bar.style.display = 'flex';
+  bar.innerHTML = snaps.map(s =>
+    `<button class="snap-tab ${snapView === s.date ? 'active' : ''}" data-snap="${s.date}">快照 ${s.date}</button>`
+  ).join('') +
+  `<button class="snap-tab ${snapView === 'current' ? 'active' : ''}" data-snap="current">目前持股</button>` +
+  (snapView !== 'current' ? `<span class="snap-hint">唯讀檢視 — 編輯請切回「目前持股」</span>` : '');
+  bar.querySelectorAll('.snap-tab').forEach(b => {
+    b.addEventListener('click', () => { snapView = b.dataset.snap; renderAll(); });
+  });
+}
+
+document.getElementById('btn-snapshot').addEventListener('click', () => {
+  const d = new Date().toISOString().slice(0, 10);
+  if (!Array.isArray(state.holdingSnapshots)) state.holdingSnapshots = [];
+  const existing = getSnapshot(d);
+  if (existing && !confirm(`已有 ${d} 的快照，要覆蓋嗎？`)) return;
+  state.holdingSnapshots = state.holdingSnapshots.filter(s => s.date !== d);
+  state.holdingSnapshots.push({ date: d, holdings: JSON.parse(JSON.stringify(state.holdings)) });
+  markDirty();
+  renderAll();
+  showToast(`已封存 ${d} 持股快照`, 'success');
+});
 
 function escapeHtml(s) {
   if (s == null) return '';
