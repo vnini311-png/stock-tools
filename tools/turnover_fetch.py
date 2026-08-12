@@ -77,6 +77,7 @@ US_INDUSTRY_MAP = {
     "GOOGL": "M7、AI雲端", "GOOG": "M7、AI雲端", "META": "M7、AI雲端",
     "TSLA": "電動車", "NFLX": "串流", "ORCL": "AI雲端", "NBIS": "AI雲端",
     "PLTR": "國防 AI", "HOOD": "券商", "COIN": "加密貨幣", "MSTR": "加密貨幣",
+    "CRWV": "AI雲端",
     "LITE": "光通訊", "COHR": "光通訊", "ANET": "網通", "CLS": "AI硬體",
     "CRDO": "AI硬體", "ALAB": "AI硬體", "SMCI": "AI伺服器", "DELL": "AI伺服器",
     "VRT": "電源/散熱", "CRWD": "資安", "IBM": "軟體", "ADBE": "軟體", "CRM": "軟體",
