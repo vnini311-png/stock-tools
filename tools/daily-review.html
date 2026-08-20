@@ -563,7 +563,7 @@ function newEntry(code, date) {
 }
 
 /* ─────────── 共用：可排序表格 ─────────── */
-const TEXT_KEYS = new Set(['code','name','port','rating','strategy','trend','ratedAt','lastDate','kdCross']);
+const TEXT_KEYS = new Set(['code','name','port','rating','strategy','trend','ratedAt','lastDate','kdCross','tag']);
 
 function sortRows(rows, sort) {
   const d = sort.dir;
@@ -676,9 +676,9 @@ const OV_COLS = [
   { k:'histChg', t:'柱變化', title:'柱狀值單日增減' },
   { k:'trend',   t:'多空',  l:1 },
   { k:'k',       t:'K' },
-  { k:'d',       t:'D' },
   { k:'kd',      t:'K−D' },
   { k:'pc',      t:'P/C %', title:'券資比 = 融券餘額 / 融資餘額' },
+  { k:'tag',     t:'TAG', l:1, title:'自訂標籤，例如 3m rev ★' },
 ];
 function ovRow(s) {
   const b = baseRow(s), t = b._t;
@@ -688,7 +688,7 @@ function ovRow(s) {
     hist, histChg: (hist != null && hp != null) ? hist - hp : null,
     trend: t.trend || '', axis: t.position || '', cross: t.cross || '',
     k: t.k, d: t.d, kd: (t.k != null && t.d != null) ? t.k - t.d : null,
-    kdCross: t.kdCross || '', pc: cred(b._m, 'P/C'),
+    kdCross: t.kdCross || '', pc: cred(b._m, 'P/C'), tag: s.revTag || '',
   });
 }
 function renderOverview() {
@@ -708,9 +708,11 @@ function renderOverview() {
           + (r.cross ? `<span class="pill ${r.cross === '黃金交叉' ? 'OW' : 'UW'}" style="margin-left:5px">${r.cross[0] + r.cross[2]}</span>` : '')
         : '—'}</td>
     <td>${nf(r.k, 1)}</td>
-    <td>${nf(r.d, 1)}</td>
     <td class="${cls(r.kd)}">${r.kd == null ? '—' : sgn(r.kd, 1)}${r.kdCross ? `<span class="sub-n">${r.kdCross[0] + r.kdCross[2]}</span>` : ''}</td>
     <td>${nf(r.pc)}</td>
+    <td class="l tight" style="min-width:130px">
+      <input type="text" class="cell-in txt" data-tag="${r.code}" value="${esc(r.tag)}" placeholder="—">
+    </td>
   </tr>`).join('');
   const tbl = $('#ov-table');
   tbl.innerHTML = `<thead>${headRow(OV_COLS, ovSort)}</thead><tbody>${body}</tbody>`;
@@ -718,6 +720,13 @@ function renderOverview() {
     + ` · 已填本益比 <b>${rows.filter(r => r.pe != null).length}</b>`;
   wireSort(tbl, OV_COLS, ovSort, renderOverview);
   wireJump(tbl);
+  tbl.querySelectorAll('[data-tag]').forEach(inp => inp.onchange = () => {
+    const st = state.stocks[inp.dataset.tag];
+    if ((st.revTag || '') === inp.value) return;
+    st.revTag = inp.value;
+    markDirty();
+    if (curCode === st.code) renderDetail();
+  });
   tbl.querySelectorAll('[data-pe]').forEach(inp => inp.onchange = () => {
     const st = state.stocks[inp.dataset.pe];
     const v = inp.value.trim();
