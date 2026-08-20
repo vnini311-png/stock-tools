@@ -65,6 +65,15 @@
   .wrap { max-width:1400px; margin:0 auto; padding:26px 26px 70px; }
   header.top { display:flex; justify-content:space-between; align-items:flex-start; gap:18px;
                flex-wrap:wrap; border-bottom:1px solid var(--border); padding-bottom:18px; margin-bottom:20px; }
+  .back-btn { display:inline-flex; align-items:center; gap:5px; padding:5px 11px;
+              background:var(--surface); border:1px solid var(--border); border-radius:5px;
+              color:var(--text-muted); font-size:11px; text-decoration:none;
+              font-family:var(--sans); transition:all .15s; white-space:nowrap; }
+  .back-btn:hover { border-color:var(--accent); color:var(--accent); background:var(--glow); }
+  .login-back { display:block; margin-top:18px; text-align:center; font-family:var(--mono);
+                font-size:11px; color:var(--text-dim); text-decoration:none; letter-spacing:.04em; }
+  .login-back:hover { color:var(--accent); }
+
   .head-left { display:flex; align-items:center; gap:12px; }
   .head-left h1 { font-family:var(--mono); font-size:17px; font-weight:600; color:#fff; }
   .head-left .sub { font-size:11px; color:var(--text-dim); font-family:var(--mono); letter-spacing:.04em; margin-top:3px; }
@@ -241,6 +250,7 @@
         都不選就是從空白開始。
       </div>
     </div>
+    <a href="../index.html" class="login-back">← 返回工具集</a>
   </div>
 </div>
 
@@ -250,6 +260,7 @@
 
   <header class="top">
     <div class="head-left">
+      <a href="../index.html" class="back-btn" title="返回工具列">← 工具列</a>
       <div class="mark">▤</div>
       <div>
         <h1>持股每日 REVIEW</h1>
