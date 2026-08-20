@@ -117,9 +117,23 @@ GitHub Pages 會自動重新部署。
 ### 初次建立筆記檔
 
 1. 產生種子檔（把 Numbers 筆記轉成 JSON，此檔已被 .gitignore）。
-2. 本機起伺服器 `python3 -m http.server 8787`，開 `http://localhost:8787/tools/daily-review.html`。
-3. 首次開啟會顯示「設定密碼 + 匯入筆記 JSON」，選 `data/review-seed.json`，輸入自訂密碼後按「建立」。
+2. **一定要在本機做**：`python3 -m http.server 8787`，開 `http://localhost:8787/tools/daily-review.html`。
+   （種子檔不會 commit，所以線上版偵測不到它。）
+3. 首次開啟會自動偵測 `data/review-seed.json` 並列出檔數與筆數，勾選框**預設已勾**；
+   輸入自訂密碼後按「建立」即會一併匯入。
 4. 按「下載加密檔」→ 把下載到的 `review.enc` 複製成 `data/review.enc` → commit + push。
+
+**檢查有沒有匯入成功**：有匯入的 `review.enc` 約 70 KB；只有 5 KB 表示是空白檔。
+即使建成空白檔也救得回來 —— 解鎖後用標題列的「匯入 JSON」按鈕補上即可（見下）。
+
+### 事後補匯入 / 合併筆記
+
+標題列的「**匯入 JSON**」可以在任何時候把另一份筆記 JSON 合併進來（來源可以是種子檔，
+或「匯出 JSON」產生的備份）。合併規則：
+
+- 同一天已存在的 review **不會被覆蓋**，只加入缺少的日期
+- 評等／策略／標籤只在目前是空白時才補上
+- 重複匯入同一份檔案不會產生重複資料
 
 ### 每日更新數據
 

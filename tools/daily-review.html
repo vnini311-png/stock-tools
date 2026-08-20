@@ -52,7 +52,11 @@
   .login-msg.err { color:var(--up); }
   .login-msg.ok { color:var(--down); }
   .login-import { margin-top:20px; padding-top:18px; border-top:1px solid var(--border); font-size:11.5px; color:var(--text-dim); line-height:1.7; }
-  .login-import label { color:var(--accent); cursor:pointer; text-decoration:underline; }
+  .login-import .linklike { color:var(--accent); cursor:pointer; text-decoration:underline; }
+  .login-import .seed-toggle { display:flex; align-items:flex-start; gap:7px; cursor:pointer;
+                               color:var(--text); text-decoration:none; line-height:1.6; }
+  .login-import .seed-toggle input { margin-top:3px; accent-color:var(--accent); }
+  .login-import .seed-toggle b { color:var(--accent); font-weight:500; }
   .login-import input[type=file] { display:none; }
 
   /* ── SHELL ── */
@@ -225,9 +229,15 @@
     </div>
     <div class="login-msg" id="login-msg"></div>
     <div class="login-import" id="import-box" style="display:none">
-      找不到 <span class="mono">data/review.enc</span>。設定一組密碼後
-      <label>匯入筆記 JSON<input type="file" id="seed-file" accept=".json"></label>
-      建立初始資料，或直接解鎖從空白開始。
+      找不到 <span class="mono">data/review.enc</span>，將建立新的筆記檔。
+      <div id="seed-found" style="display:none; margin-top:10px">
+        <label class="seed-toggle"><input type="checkbox" id="seed-use" checked>
+          <span>一併匯入 <span class="mono">data/review-seed.json</span><b id="seed-desc"></b></span></label>
+      </div>
+      <div style="margin-top:9px">
+        或<label class="linklike">改選其他筆記 JSON<input type="file" id="seed-file" accept=".json"></label>；
+        都不選就是從空白開始。
+      </div>
     </div>
   </div>
 </div>
@@ -249,6 +259,8 @@
       <span class="stamp" id="stamp-save">已儲存</span>
       <button class="btn" id="btn-export">下載加密檔</button>
       <button class="btn" id="btn-json">匯出 JSON</button>
+      <button class="btn" id="btn-import">匯入 JSON</button>
+      <input type="file" id="merge-file" accept=".json" style="display:none">
     </div>
   </header>
 
@@ -984,6 +996,53 @@ function switchTab(name) {
   if (name === 'market') renderMarket();
 }
 
+/* ─────────── IMPORT / MERGE ─────────── */
+/* 依日期合併：既有的同日筆記不覆蓋，空白的評等/策略才補上 */
+function mergeNotes(incoming) {
+  const sum = { stocks:0, entries:0, ratings:0, market:0, skipped:0 };
+  Object.values(incoming.stocks || {}).forEach(src => {
+    const dst = state.stocks[src.code] || (state.stocks[src.code] =
+      { code:src.code, name:src.name, rating:'', strategy:'', revTag:'', ratedAt:null, entries:[] });
+    let touched = false;
+    ['rating', 'strategy', 'revTag'].forEach(f => {
+      if (!dst[f] && src[f]) { dst[f] = src[f]; touched = true; }
+    });
+    if (touched) { dst.ratedAt = dst.ratedAt || src.ratedAt; sum.ratings++; }
+    if (!dst.group && src.group) dst.group = src.group;
+    const have = new Set((dst.entries || []).map(e => e.date));
+    (src.entries || []).forEach(e => {
+      if (have.has(e.date)) { sum.skipped++; return; }
+      SECS.forEach(k => { if (!e[k]) e[k] = { text:'' }; });
+      dst.entries.push(e); have.add(e.date); sum.entries++;
+    });
+    dst.entries.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+    if (touched || (src.entries || []).length) sum.stocks++;
+  });
+  const mHave = new Set((state.market.notes || []).map(n => n.date));
+  ((incoming.market || {}).notes || []).forEach(n => {
+    if (mHave.has(n.date)) { sum.skipped++; return; }
+    state.market.notes.push({ date:n.date, text:n.text }); sum.market++;
+  });
+  state.market.notes.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+  return sum;
+}
+async function importFromFile(file) {
+  let incoming;
+  try {
+    incoming = JSON.parse(await file.text());
+  } catch (e) { toast('JSON 讀取失敗：' + e.message); return; }
+  if (!incoming || !incoming.stocks) { toast('這個檔案沒有 stocks 欄位'); return; }
+  const nStock = Object.keys(incoming.stocks).length;
+  const nEntry = Object.values(incoming.stocks).reduce((a, x) => a + ((x.entries || []).length), 0);
+  if (!confirm(`要從 ${file.name} 合併 ${nStock} 檔、${nEntry} 筆 review 嗎？\n\n`
+             + '同一天已存在的筆記不會被覆蓋；空白的評等與策略才會補上。')) return;
+  const sum = mergeNotes(incoming);
+  markDirty();
+  renderStrategy(); renderOverview(); renderSide(); renderDetail(); renderMarket();
+  toast(`已合併 ${sum.entries} 筆 review、${sum.market} 筆大盤筆記`
+      + (sum.skipped ? `（略過 ${sum.skipped} 筆同日重複）` : '') + ' — 記得下載加密檔');
+}
+
 /* ─────────── EXPORT ─────────── */
 function download(name, blob) {
   const a = document.createElement('a');
@@ -1062,6 +1121,19 @@ async function init() {
     $('#import-box').style.display = 'block';
     $('#login-sub').textContent = '首次使用：設定一組密碼，之後每次用它解鎖。';
     $('#unlock').textContent = '建立';
+    try {
+      const r = await fetch('../data/review-seed.json', { cache:'no-store' });
+      if (r.ok) {
+        const j = await r.json();
+        if (j && j.stocks) {
+          seedData = j;
+          const ns = Object.keys(j.stocks).length;
+          const ne = Object.values(j.stocks).reduce((a, x) => a + ((x.entries || []).length), 0);
+          $('#seed-desc').textContent = `（${ns} 檔 · ${ne} 筆 review）`;
+          $('#seed-found').style.display = 'block';
+        }
+      }
+    } catch (e) { /* 沒有種子檔就從空白開始 */ }
   }
 }
 
@@ -1083,9 +1155,17 @@ $('#unlock').onclick = async () => {
   const msg = $('#login-msg');
   if (!pw) { msg.className = 'login-msg err'; msg.textContent = '請輸入密碼'; return; }
   if (!encBlob) {
+    const useSeed = seedData && (!$('#seed-found') || $('#seed-found').style.display === 'none'
+                                 || $('#seed-use').checked);
     password = pw;
-    boot(seedData || { version:1, market:{ notes:[] }, stocks:{} });
-    if (seedData) { markDirty(); toast('已匯入筆記 — 請按「下載加密檔」產生 review.enc'); }
+    boot(useSeed ? seedData : { version:1, market:{ notes:[] }, stocks:{} });
+    if (useSeed) {
+      const n = Object.values(state.stocks).reduce((a, x) => a + x.entries.length, 0);
+      markDirty();
+      toast(`已匯入 ${n} 筆 review — 請按「下載加密檔」產生 review.enc`);
+    } else {
+      toast('已建立空白筆記檔 — 之後可用「匯入 JSON」補上舊筆記');
+    }
     return;
   }
   msg.className = 'login-msg'; msg.textContent = '解鎖中…';
@@ -1116,6 +1196,12 @@ document.querySelectorAll('[data-arch]').forEach(b => b.onclick = () => {
   renderStrategy(); renderOverview();
 });
 $('#btn-export').onclick = exportEnc;
+$('#btn-import').onclick = () => $('#merge-file').click();
+$('#merge-file').onchange = async ev => {
+  const f = ev.target.files[0];
+  ev.target.value = '';
+  if (f) await importFromFile(f);
+};
 $('#btn-json').onclick = () => download('review-notes.json',
   new Blob([JSON.stringify(state, null, 1)], { type:'application/json' }));
 $('#mk-add').onclick = () => {
