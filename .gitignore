@@ -14,3 +14,8 @@ server.py
 # 舊版本 / 備份
 index-V0.html
 *.bak
+
+# 每日 Review 筆記明文（只有加密後的 data/review.enc 可以 commit）
+data/review-seed.json
+data/review-notes.json
+tools/_qa-*.html

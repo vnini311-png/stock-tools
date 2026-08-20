@@ -1,0 +1,1134 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>持股每日 Review</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+TC:wght@300;400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0d14; --surface: #0f1624; --surface2: #161f33; --surface3: #1b2540;
+    --border: #1c2840; --border2: #2a3651;
+    --text: #dde4f0; --text-muted: #6b7a96; --text-dim: #4a5670;
+    --accent: #818cf8; --accent2: #e879f9; --glow: rgba(129,140,248,0.18);
+    --up: #ef4444; --down: #22c55e; --flat: #6b7a96;
+    --ow: #ef4444; --n: #eab308; --uw: #22c55e;
+    --mono: 'IBM Plex Mono', monospace; --sans: 'IBM Plex Sans TC', sans-serif;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    background: var(--bg); color: var(--text); font-family: var(--sans);
+    min-height:100vh;
+    background-image: radial-gradient(circle at 12% 15%, rgba(129,140,248,0.07) 0%, transparent 42%),
+                      radial-gradient(circle at 88% 80%, rgba(232,121,249,0.05) 0%, transparent 42%);
+    background-attachment: fixed;
+  }
+  .mono { font-family: var(--mono); }
+  button { font-family: inherit; cursor: pointer; }
+
+  /* ── LOGIN ── */
+  .login { position:fixed; inset:0; display:flex; align-items:center; justify-content:center; z-index:100; background:var(--bg); padding:20px; }
+  .login.hidden { display:none; }
+  .login-box { width:100%; max-width:420px; background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:34px 30px; }
+  .login-brand { display:flex; align-items:center; gap:12px; margin-bottom:8px; }
+  .mark { width:34px; height:34px; border-radius:8px; background:linear-gradient(135deg,var(--accent),var(--accent2));
+          display:flex; align-items:center; justify-content:center; color:#0a0d14; font-family:var(--mono); font-weight:600; }
+  .login-brand h1 { font-family:var(--mono); font-size:17px; font-weight:600; color:#fff; letter-spacing:.02em; }
+  .login-sub { font-size:12.5px; color:var(--text-muted); line-height:1.65; margin:10px 0 22px; }
+  .login-field { display:flex; gap:8px; }
+  input[type=password], input[type=text], input[type=date], textarea, select {
+    background:var(--surface2); border:1px solid var(--border2); border-radius:7px; color:var(--text);
+    padding:9px 11px; font-family:inherit; font-size:13px; outline:none; width:100%;
+  }
+  input:focus, textarea:focus, select:focus { border-color:var(--accent); }
+  .btn { background:var(--surface2); border:1px solid var(--border2); border-radius:7px; color:var(--text);
+         padding:9px 15px; font-size:12.5px; font-family:var(--mono); white-space:nowrap; transition:.15s; }
+  .btn:hover { border-color:var(--accent); color:#fff; }
+  .btn.primary { background:linear-gradient(135deg,var(--accent),var(--accent2)); border-color:transparent; color:#0a0d14; font-weight:600; }
+  .btn.primary:hover { filter:brightness(1.1); }
+  .btn.danger:hover { border-color:var(--up); color:var(--up); }
+  .btn.sm { padding:5px 10px; font-size:11px; }
+  .login-msg { font-size:12px; margin-top:14px; min-height:18px; line-height:1.6; }
+  .login-msg.err { color:var(--up); }
+  .login-msg.ok { color:var(--down); }
+  .login-import { margin-top:20px; padding-top:18px; border-top:1px solid var(--border); font-size:11.5px; color:var(--text-dim); line-height:1.7; }
+  .login-import label { color:var(--accent); cursor:pointer; text-decoration:underline; }
+  .login-import input[type=file] { display:none; }
+
+  /* ── SHELL ── */
+  .app { display:none; }
+  .app.active { display:block; }
+  .wrap { max-width:1400px; margin:0 auto; padding:26px 26px 70px; }
+  header.top { display:flex; justify-content:space-between; align-items:flex-start; gap:18px;
+               flex-wrap:wrap; border-bottom:1px solid var(--border); padding-bottom:18px; margin-bottom:20px; }
+  .head-left { display:flex; align-items:center; gap:12px; }
+  .head-left h1 { font-family:var(--mono); font-size:17px; font-weight:600; color:#fff; }
+  .head-left .sub { font-size:11px; color:var(--text-dim); font-family:var(--mono); letter-spacing:.04em; margin-top:3px; }
+  .head-right { display:flex; align-items:center; gap:9px; flex-wrap:wrap; }
+  .stamp { font-family:var(--mono); font-size:10.5px; color:var(--text-dim); letter-spacing:.03em;
+           border:1px solid var(--border); border-radius:5px; padding:4px 8px; }
+  .stamp b { color:var(--text-muted); font-weight:500; }
+  .dirty { color:var(--n) !important; border-color:var(--n) !important; }
+
+  .tabs { display:flex; gap:5px; margin-bottom:20px; border-bottom:1px solid var(--border); }
+  .tab { background:none; border:none; border-bottom:2px solid transparent; color:var(--text-muted);
+         padding:9px 16px; font-size:13px; font-family:var(--mono); letter-spacing:.03em; }
+  .tab:hover { color:var(--text); }
+  .tab.active { color:var(--accent); border-bottom-color:var(--accent); }
+  .panel { display:none; }
+  .panel.active { display:block; }
+
+  /* ── TABLE ── */
+  .tbl-wrap { overflow-x:auto; border:1px solid var(--border); border-radius:10px; background:var(--surface); }
+  table { width:100%; border-collapse:collapse; font-size:12.5px; }
+  th { background:var(--surface2); color:var(--text-muted); font-family:var(--mono); font-size:10.5px;
+       font-weight:500; letter-spacing:.05em; text-transform:uppercase; padding:10px 11px; text-align:right;
+       white-space:nowrap; border-bottom:1px solid var(--border); position:sticky; top:0; cursor:pointer; user-select:none; }
+  th:first-child, th.l { text-align:left; }
+  th:hover { color:var(--accent); }
+  th .arr { opacity:.4; font-size:9px; margin-left:3px; }
+  td { padding:9px 11px; text-align:right; border-bottom:1px solid var(--border); white-space:nowrap; font-family:var(--mono); }
+  td.l { text-align:left; font-family:var(--sans); white-space:normal; }
+  tbody tr { cursor:pointer; }
+  tbody tr:hover { background:var(--surface2); }
+  tbody tr:last-child td { border-bottom:none; }
+  .pos { color:var(--up); } .neg { color:var(--down); } .dim { color:var(--text-dim); }
+  .nm { color:#fff; font-family:var(--sans); }
+  .cd { color:var(--text-dim); font-size:11px; }
+
+  .pill { display:inline-block; font-family:var(--mono); font-size:10px; padding:2px 7px; border-radius:4px;
+          border:1px solid var(--border2); color:var(--text-muted); letter-spacing:.04em; }
+  .pill.OW { color:var(--ow); border-color:var(--ow); background:rgba(239,68,68,.1); }
+  .pill.N  { color:var(--n);  border-color:var(--n);  background:rgba(234,179,8,.1); }
+  .pill.UW { color:var(--uw); border-color:var(--uw); background:rgba(34,197,94,.1); }
+  .pill.tag { color:var(--accent); border-color:var(--accent); background:var(--glow); }
+
+  /* ── STOCK LAYOUT ── */
+  .cols { display:grid; grid-template-columns:238px 1fr; gap:20px; align-items:start; }
+  .side { background:var(--surface); border:1px solid var(--border); border-radius:10px; overflow:hidden;
+          position:sticky; top:16px; max-height:calc(100vh - 40px); display:flex; flex-direction:column; }
+  .side-head { padding:11px; border-bottom:1px solid var(--border); display:flex; flex-direction:column; gap:8px; }
+  .side-filters { display:flex; gap:5px; }
+  .fbtn { flex:1; background:var(--surface2); border:1px solid var(--border); border-radius:5px; color:var(--text-dim);
+          font-family:var(--mono); font-size:10px; padding:4px 0; }
+  .fbtn.active { color:var(--accent); border-color:var(--accent); background:var(--glow); }
+  .side-list { overflow-y:auto; flex:1; }
+  .sitem { display:flex; align-items:center; gap:8px; padding:8px 11px; border-bottom:1px solid var(--border);
+           cursor:pointer; font-size:12.5px; }
+  .sitem:hover { background:var(--surface2); }
+  .sitem.on { background:var(--surface3); box-shadow:inset 3px 0 0 var(--accent); }
+  .sitem .c { font-family:var(--mono); font-size:10.5px; color:var(--text-dim); width:32px; flex:none; }
+  .sitem .n { flex:1; color:var(--text); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .sitem .p { font-family:var(--mono); font-size:10.5px; flex:none; }
+  .sitem .dotn { width:5px; height:5px; border-radius:50%; background:var(--accent); flex:none; }
+  .sitem .dotn.off { background:transparent; }
+
+  .card { background:var(--surface); border:1px solid var(--border); border-radius:10px; margin-bottom:16px; }
+  .stock-head { padding:18px 20px; border-bottom:1px solid var(--border); }
+  .sh-top { display:flex; align-items:baseline; gap:12px; flex-wrap:wrap; margin-bottom:14px; }
+  .sh-top .code { font-family:var(--mono); font-size:13px; color:var(--text-dim); }
+  .sh-top .name { font-size:20px; color:#fff; font-weight:500; }
+  .sh-top .px { font-family:var(--mono); font-size:20px; }
+  .sh-top .chg { font-family:var(--mono); font-size:13px; }
+  .sh-top .spacer { flex:1; }
+  .sh-ctl { display:flex; gap:9px; align-items:center; flex-wrap:wrap; }
+  .sh-ctl select { width:auto; min-width:82px; font-family:var(--mono); font-size:12px; }
+  .sh-ctl .grow { flex:1; min-width:220px; }
+  .sh-ctl label { font-family:var(--mono); font-size:10.5px; color:var(--text-dim); letter-spacing:.05em; }
+
+  .kpis { display:grid; grid-template-columns:repeat(auto-fit,minmax(112px,1fr)); gap:1px; background:var(--border);
+          border-bottom:1px solid var(--border); }
+  .kpi { background:var(--surface); padding:11px 13px; }
+  .kpi .k { font-family:var(--mono); font-size:9.5px; color:var(--text-dim); letter-spacing:.06em; text-transform:uppercase; }
+  .kpi .v { font-family:var(--mono); font-size:15px; margin-top:4px; color:var(--text); }
+  .kpi .s { font-family:var(--mono); font-size:10px; color:var(--text-dim); margin-top:2px; }
+
+  /* ── ENTRY ── */
+  .entries { padding:16px 20px 20px; }
+  .entry { border:1px solid var(--border); border-radius:9px; margin-bottom:14px; background:var(--surface); overflow:hidden; }
+  .entry.editing { border-color:var(--accent); box-shadow:0 0 0 1px var(--glow); }
+  .e-head { display:flex; align-items:center; gap:12px; padding:11px 15px; background:var(--surface2); flex-wrap:wrap; }
+  .e-head .d { font-family:var(--mono); font-size:13px; color:#fff; }
+  .e-head .px { font-family:var(--mono); font-size:12.5px; color:var(--text-muted); }
+  .e-head .rng { font-family:var(--mono); font-size:10.5px; color:var(--text-dim); }
+  .e-head .sp { flex:1; }
+  .e-body { padding:4px 15px 14px; }
+  .sec { display:grid; grid-template-columns:26px 1fr; gap:11px; padding:11px 0; border-bottom:1px dashed var(--border); }
+  .sec:last-child { border-bottom:none; }
+  .sec .badge { width:24px; height:24px; border-radius:6px; background:var(--surface3); border:1px solid var(--border2);
+                display:flex; align-items:center; justify-content:center; font-family:var(--mono); font-size:11px;
+                color:var(--accent); margin-top:1px; }
+  .sec[data-s=T] .badge { color:#f5a623; } .sec[data-s=I] .badge { color:#a78bfa; }
+  .sec[data-s=S] .badge { color:#22d3ee; } .sec[data-s=F] .badge { color:#34d399; }
+  .sec[data-s=O] .badge { color:#f43f5e; }
+  .sec .body { min-width:0; }
+  .sec .lbl { font-family:var(--mono); font-size:9.5px; color:var(--text-dim); letter-spacing:.07em; margin-bottom:5px; text-transform:uppercase; }
+  .sec .txt { font-size:13px; line-height:1.75; white-space:pre-wrap; word-break:break-word; color:var(--text); }
+  .sec .txt.empty { color:var(--text-dim); font-style:italic; }
+  .sec textarea { min-height:74px; line-height:1.7; resize:vertical; }
+  .grid4 { margin-top:9px; border:1px solid var(--border); border-radius:7px; overflow-x:auto; }
+  .grid4 table { min-width:430px; }
+  .grid4 table { font-size:11.5px; }
+  .grid4 th, .grid4 td { padding:5px 9px; text-align:right; }
+  .grid4 th { position:static; cursor:default; font-size:9.5px; }
+  .grid4 th:hover { color:var(--text-muted); }
+  .grid4 td.rl { text-align:left; font-family:var(--mono); font-size:9.5px; color:var(--text-dim);
+                 letter-spacing:.05em; text-transform:uppercase; }
+  .grid4 input { padding:3px 6px; font-size:11.5px; font-family:var(--mono); text-align:right; background:var(--surface2); }
+  .grid4 input.lab { text-align:center; font-size:10px; color:var(--text-muted); }
+
+  .streak { display:flex; gap:3px; margin-top:6px; }
+  .streak i { width:7px; height:11px; border-radius:2px; background:var(--border2); display:block; }
+  .streak i.u { background:var(--up); } .streak i.d { background:var(--down); }
+
+  .panel-bar { display:flex; align-items:center; gap:9px; margin-bottom:11px; flex-wrap:wrap; }
+  .panel-bar .grow { flex:1; }
+  td .cell-in { background:transparent; border:1px solid transparent; border-radius:5px; padding:4px 7px;
+                font-size:12.5px; width:100%; }
+  td .cell-in:hover { border-color:var(--border2); background:var(--surface2); }
+  td .cell-in:focus { border-color:var(--accent); background:var(--surface2); }
+  td input.cell-in { font-family:var(--mono); text-align:right; }
+  td input.cell-in.txt { font-family:var(--sans); text-align:left; }
+  td select.cell-in { font-family:var(--mono); text-align:left; width:auto; min-width:64px; cursor:pointer; }
+  td.tight { padding:4px 6px; }
+  .sub-n { font-size:10px; color:var(--text-dim); margin-left:4px; }
+
+  .empty-box { padding:44px 20px; text-align:center; color:var(--text-dim); font-size:13px; line-height:1.9; }
+  .note { font-size:11.5px; color:var(--text-dim); line-height:1.7; }
+  .toast { position:fixed; left:50%; bottom:26px; transform:translateX(-50%) translateY(80px); background:var(--surface3);
+           border:1px solid var(--border2); border-radius:8px; padding:10px 18px; font-size:12.5px; color:var(--text);
+           opacity:0; transition:.25s; z-index:200; pointer-events:none; }
+  .toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
+  .mkt-notes { padding:16px 20px 20px; }
+  .mnote { border:1px solid var(--border); border-radius:8px; margin-bottom:11px; }
+  .mnote .h { display:flex; gap:10px; align-items:center; padding:9px 14px; background:var(--surface2); }
+  .mnote .h .d { font-family:var(--mono); font-size:12.5px; color:#fff; } .mnote .h .sp { flex:1; }
+  .mnote .b { padding:12px 14px; font-size:13px; line-height:1.75; white-space:pre-wrap; }
+
+  @media (max-width:900px) {
+    .cols { grid-template-columns:1fr; }
+    .side { position:static; max-height:300px; }
+    .wrap { padding:20px 14px 60px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ─────────── LOGIN ─────────── -->
+<div class="login" id="login">
+  <div class="login-box">
+    <div class="login-brand"><div class="mark">▤</div><h1>DAILY REVIEW</h1></div>
+    <div class="login-sub" id="login-sub">輸入密碼以解鎖持股每日 Review 筆記</div>
+    <div class="login-field">
+      <input type="password" id="pw" placeholder="密碼" autocomplete="current-password">
+      <button class="btn primary" id="unlock">解鎖</button>
+    </div>
+    <div class="login-msg" id="login-msg"></div>
+    <div class="login-import" id="import-box" style="display:none">
+      找不到 <span class="mono">data/review.enc</span>。設定一組密碼後
+      <label>匯入筆記 JSON<input type="file" id="seed-file" accept=".json"></label>
+      建立初始資料，或直接解鎖從空白開始。
+    </div>
+  </div>
+</div>
+
+<!-- ─────────── APP ─────────── -->
+<div class="app" id="app">
+<div class="wrap">
+
+  <header class="top">
+    <div class="head-left">
+      <div class="mark">▤</div>
+      <div>
+        <h1>持股每日 REVIEW</h1>
+        <div class="sub">T 技術 · I 籌碼 · S 信用 · F 基本面 · O 總結</div>
+      </div>
+    </div>
+    <div class="head-right">
+      <span class="stamp" id="stamp-data">—</span>
+      <span class="stamp" id="stamp-save">已儲存</span>
+      <button class="btn" id="btn-export">下載加密檔</button>
+      <button class="btn" id="btn-json">匯出 JSON</button>
+    </div>
+  </header>
+
+  <div class="tabs">
+    <button class="tab active" data-tab="strategy">Strategy</button>
+    <button class="tab" data-tab="overview">Overview</button>
+    <button class="tab" data-tab="stock">個股 Review</button>
+    <button class="tab" data-tab="market">大盤</button>
+  </div>
+
+  <!-- Strategy Panel -->
+  <div class="panel active" id="p-strategy">
+    <div class="panel-bar">
+      <span class="stamp" id="sp-count">—</span>
+      <button class="btn sm" data-arch="1">含已出場</button>
+      <span class="grow"></span>
+      <span class="note">評等與策略可直接在表格內編輯</span>
+    </div>
+    <div class="tbl-wrap"><table id="sp-table"></table></div>
+    <p class="note" style="margin-top:12px">
+      點代號跳到該檔的 Review。「策略更新日」是你最後一次改評等或策略的日子；
+      「最後REVIEW」是最近一筆 T/I/S/F/O 筆記的日期 —— 兩者差距愈大，代表這檔的判斷愈久沒重新檢查。
+    </p>
+  </div>
+
+  <!-- Overview -->
+  <div class="panel" id="p-overview">
+    <div class="panel-bar">
+      <span class="stamp" id="ov-count">—</span>
+      <button class="btn sm" data-arch="1">含已出場</button>
+      <span class="grow"></span>
+      <span class="note">本益比為手動欄位，其餘每日自動帶入</span>
+    </div>
+    <div class="tbl-wrap"><table id="ov-table"></table></div>
+    <p class="note" style="margin-top:12px">
+      MACD 變化 = 柱狀值與其單日增減（柱狀 = DIF − MACD）；KD 取 (9,3,3)；P/C 為券資比。
+      資料來源 <span class="mono">data/review-metrics.json</span>，涵蓋每日持股交易數據的我的 35 檔 + Adam 5 檔。
+    </p>
+  </div>
+
+  <!-- 個股 -->
+  <div class="panel" id="p-stock">
+    <div class="cols">
+      <div class="side">
+        <div class="side-head">
+          <input type="text" id="sq" placeholder="搜尋代號 / 名稱">
+          <div class="side-filters">
+            <button class="fbtn active" data-f="all">全部</button>
+            <button class="fbtn" data-f="SIVI">我的</button>
+            <button class="fbtn" data-f="ADAM">Adam</button>
+            <button class="fbtn" data-f="WATCH">觀察</button>
+          </div>
+          <div class="side-filters">
+            <button class="fbtn" data-f="noted">有筆記</button>
+            <button class="fbtn" data-f="OW">OW</button>
+            <button class="fbtn" data-f="UW">UW</button>
+            <button class="fbtn" data-f="out">已出場</button>
+          </div>
+        </div>
+        <div class="side-list" id="slist"></div>
+      </div>
+      <div id="detail"></div>
+    </div>
+  </div>
+
+  <!-- 大盤 -->
+  <div class="panel" id="p-market">
+    <div class="card">
+      <div class="stock-head">
+        <div class="sh-top">
+          <span class="name">加權指數</span>
+          <span class="px" id="mk-px">—</span>
+          <span class="chg" id="mk-chg"></span>
+          <span class="spacer"></span>
+          <button class="btn sm primary" id="mk-add">新增大盤筆記</button>
+        </div>
+      </div>
+      <div class="kpis" id="mk-kpis"></div>
+      <div class="mkt-notes" id="mk-notes"></div>
+    </div>
+  </div>
+
+</div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+(function () {
+'use strict';
+
+/* ─────────── CRYPTO（與 portfolio.html 同格式，magic 改 RVEW） ─────────── */
+const MAGIC = new Uint8Array([0x52, 0x56, 0x45, 0x57]);
+const PBKDF2_ITER = 300000;
+
+async function deriveKey(password, salt) {
+  const baseKey = await crypto.subtle.importKey('raw', new TextEncoder().encode(password), 'PBKDF2', false, ['deriveKey']);
+  return crypto.subtle.deriveKey({ name:'PBKDF2', salt, iterations:PBKDF2_ITER, hash:'SHA-256' },
+    baseKey, { name:'AES-GCM', length:256 }, false, ['encrypt','decrypt']);
+}
+async function encryptPayload(plaintext, password) {
+  const salt = crypto.getRandomValues(new Uint8Array(16));
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const key = await deriveKey(password, salt);
+  const ct = await crypto.subtle.encrypt({ name:'AES-GCM', iv }, key, new TextEncoder().encode(plaintext));
+  const out = new Uint8Array(MAGIC.length + 28 + ct.byteLength);
+  out.set(MAGIC, 0); out.set(salt, 4); out.set(iv, 20); out.set(new Uint8Array(ct), 32);
+  return out;
+}
+async function decryptPayload(blob, password) {
+  for (let i = 0; i < MAGIC.length; i++) if (blob[i] !== MAGIC[i]) throw new Error('檔案格式不正確');
+  const salt = blob.slice(4, 20), iv = blob.slice(20, 32), ct = blob.slice(32);
+  const key = await deriveKey(password, salt);
+  return new TextDecoder().decode(await crypto.subtle.decrypt({ name:'AES-GCM', iv }, key, ct));
+}
+
+/* ─────────── STATE ─────────── */
+const ENC_PATH = '../data/review.enc';
+const METRICS_PATH = '../data/review-metrics.json';
+const LS_KEY = 'daily_review_v1';
+const SECS = ['T','I','S','F','O'];
+const SEC_NAME = { T:'技術面 TECHNICAL', I:'籌碼面 INSTITUTIONAL', S:'信用交易 SHORT / MARGIN', F:'基本面 FUNDAMENTAL', O:'總結 OVERALL' };
+const DEF_LABELS = { T:['MACD柱','K','D','K−D'], I:['QFII','QDII','Trader','融資'], S:['融資UR','融券','P/C','LS'] };
+const ROW_KEYS = { T:['value'], I:['value','change','ratio'], S:['value','change'] };
+const ROW_NAME = { value:'數值', change:'增減', ratio:'持股%' };
+
+let password = null, state = null, METRICS = null, dirty = false;
+let curCode = null, editing = null, sideFilter = 'all', sideQ = '';
+let ovSort = { key:'code', dir:1 }, spSort = { key:'code', dir:1 }, showArchived = false;
+
+const $ = s => document.querySelector(s);
+const el = (t, c, h) => { const e = document.createElement(t); if (c) e.className = c; if (h != null) e.innerHTML = h; return e; };
+const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+function toast(msg) {
+  const t = $('#toast'); t.textContent = msg; t.classList.add('show');
+  clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove('show'), 2200);
+}
+function todayISO() {
+  const d = new Date(Date.now() + 8 * 3600e3);   // 台北時間
+  return d.toISOString().slice(0, 10);
+}
+
+/* ─────────── FORMAT ─────────── */
+const nf = (v, d = 2) => (v == null || v === '' || isNaN(v)) ? '—' : Number(v).toLocaleString('en-US', { minimumFractionDigits:d, maximumFractionDigits:d });
+const ni = v => (v == null || v === '' || isNaN(v)) ? '—' : Math.round(v).toLocaleString('en-US');
+function pctTxt(v, d = 2) { return v == null || isNaN(v) ? '—' : (v > 0 ? '+' : '') + Number(v).toFixed(d) + '%'; }
+function cls(v) { return v == null || isNaN(v) || v === 0 ? '' : (v > 0 ? 'pos' : 'neg'); }
+function sgn(v, d = 0) {
+  if (v == null || isNaN(v)) return '—';
+  const n = Number(v).toLocaleString('en-US', { minimumFractionDigits:d, maximumFractionDigits:d });
+  return (v > 0 ? '+' : '') + n;
+}
+function spanNum(v, d = 2, suffix = '') {
+  return `<span class="${cls(v)}">${v == null || isNaN(v) ? '—' : (v > 0 ? '+' : '') + Number(v).toFixed(d) + suffix}</span>`;
+}
+
+/* ─────────── DATA ACCESS ─────────── */
+function M(code) { return (METRICS && METRICS.stocks && METRICS.stocks[code]) || null; }
+function stocksArr(includeArchived) {
+  return Object.values(state.stocks)
+    .filter(s => includeArchived || s.held !== false)
+    .sort((a, b) => a.code.localeCompare(b.code));
+}
+const PORT_NAME = { SIVI:'我的', ADAM:'Adam', WATCH:'觀察' };
+/* 組合：預設取自每日持股交易數據（SIVI/ADAM），可手動改成 WATCH 觀察 */
+function grp(s) { return s.group || s.portfolio || null; }
+function grpName(s) { return s.held === false ? '已出場' : (PORT_NAME[grp(s)] || '—'); }
+function lastEntry(s) { return s.entries && s.entries.length ? s.entries[0] : null; }
+
+function markDirty() {
+  dirty = true;
+  const s = $('#stamp-save'); s.textContent = '未儲存 · 記得下載加密檔'; s.classList.add('dirty');
+  state.updated = new Date().toISOString();
+  try { localStorage.setItem(LS_KEY, JSON.stringify(state)); } catch (e) { console.warn(e); }
+}
+function markClean() {
+  dirty = false;
+  const s = $('#stamp-save'); s.textContent = '已儲存'; s.classList.remove('dirty');
+}
+
+/* ─────────── 自動草稿（把當日數據寫成筆記體例） ─────────── */
+function draftT(m) {
+  const t = m && m.tech; if (!t) return '';
+  const L = [];
+  L.push(`收 ${nf(t.close)}（${pctTxt(t.chgPct)}）`);
+  const ma = [];
+  if (t.ma20  != null) ma.push(`月線 ${nf(t.ma20)}(${pctTxt(t.vsMa20)})`);
+  if (t.ma60  != null) ma.push(`季線 ${nf(t.ma60)}(${pctTxt(t.vsMa60)})`);
+  if (t.ma240 != null) ma.push(`年線 ${nf(t.ma240)}(${pctTxt(t.vsMa240)})`);
+  if (ma.length) L.push(ma.join('，'));
+  if (t.macd != null) {
+    const dh = (t.hist != null && t.histPrev != null) ? `，Δ ${sgn(t.hist - t.histPrev, 2)}` : '';
+    L.push(`MACD ${t.trend}・柱 ${nf(t.hist)}（${t.histDir}）${dh}・${t.position}${t.cross ? '・' + t.cross : ''}`);
+  }
+  if (t.k != null) L.push(`KD ${nf(t.k,1)}/${nf(t.d,1)}，K−D ${sgn(t.k - t.d, 1)}${t.kdCross ? '・' + t.kdCross : ''}`);
+  if (t.ytdHigh != null) L.push(`距 YTD 高 ${pctTxt(t.fromHigh)}（${nf(t.ytdHigh)} @${t.ytdHighDate}）／自低 ${pctTxt(t.fromLow)}`);
+  if (t.volRatio != null) L.push(`量 ${ni(t.volume/1000)} 張，為 5 日均量 ${nf(t.volRatio)}x`);
+  return L.join('\n');
+}
+function draftI(m) {
+  const c = m && m.chips; if (!c) return '';
+  const nm = ['外資','投信','自營','融資'];
+  const L = nm.map((n, i) => {
+    const v = c.value[i], ch = c.change[i], rt = c.ratio[i];
+    return `${n} ${ni(v)} 張（${sgn(ch)}）${rt != null ? ' ' + (rt * 100).toFixed(2) + '%' : ''}`;
+  });
+  if (m.big && m.big.pct != null) L.push(`千張大戶 ${nf(m.big.pct)}%（${sgn(m.big.chg, 2)}）`);
+  return L.join('\n');
+}
+function draftS(m) {
+  const s = m && m.credit; if (!s) return '';
+  const L = [];
+  if (s.value[0] != null) L.push(`融資 UR=${(s.value[0]*100).toFixed(2)}%（${sgn(s.change[0]*100, 2)}pp）`);
+  if (s.value[1] != null) L.push(`融券 ${ni(s.value[1])} 張（${sgn(s.change[1])}）`);
+  if (s.value[2] != null) L.push(`券資比 P/C=${nf(s.value[2])}%（${sgn(s.change[2], 2)}）`);
+  L.push(s.value[3] != null
+    ? `借券 LS=${ni(s.value[3])} 張（${sgn(s.change[3])}）`
+    : 'LS（借券餘額）：');
+  return L.join('\n');
+}
+
+/* ─────────── 新增 entry ─────────── */
+function blankSection(k, m) {
+  const o = { text:'' };
+  if (DEF_LABELS[k]) { o.labels = DEF_LABELS[k].slice(); ROW_KEYS[k].forEach(r => o[r] = [null,null,null,null]); }
+  if (!m) return o;
+  if (k === 'T' && m.tech) {
+    o.text = draftT(m);
+    const kd = (m.tech.k != null && m.tech.d != null) ? Number((m.tech.k - m.tech.d).toFixed(2)) : null;
+    o.value = [m.tech.hist, m.tech.k, m.tech.d, kd];   // 第一欄存柱狀值(DIF−慢線)，與 dashboard 一致
+  }
+  if (k === 'I' && m.chips) {
+    o.text = draftI(m); o.labels = m.chips.labels.slice();
+    o.value = m.chips.value.slice(); o.change = m.chips.change.slice(); o.ratio = m.chips.ratio.slice();
+  }
+  if (k === 'S' && m.credit) {
+    o.text = draftS(m); o.labels = m.credit.labels.slice();
+    o.value = m.credit.value.slice(); o.change = m.credit.change.slice();
+  }
+  return o;
+}
+function newEntry(code, date) {
+  const m = M(code), t = m && m.tech;
+  const e = {
+    date: date || todayISO(),
+    price: t ? t.close : null,
+    peak: t ? t.ytdHigh : null, low: t ? t.ytdLow : null, pct: t ? t.fromLow : null,
+    peakLabel: t && t.ytdHighDate ? t.ytdHighDate.slice(5).replace('-','/') + ' PEAK' : 'YTD PEAK',
+    lowLabel: t && t.ytdLowDate ? t.ytdLowDate.slice(5).replace('-','/') + ' LOW' : 'YTD LOW',
+    src: 'auto',
+    auto: m ? { priceDate: t ? t.date : null, chipDate: m.chipDate } : null,
+  };
+  SECS.forEach(k => e[k] = blankSection(k, m));
+  return e;
+}
+
+/* ─────────── 共用：可排序表格 ─────────── */
+const TEXT_KEYS = new Set(['code','name','port','rating','strategy','trend','ratedAt','lastDate','kdCross']);
+
+function sortRows(rows, sort) {
+  const d = sort.dir;
+  return rows.slice().sort((a, b) => {
+    const x = a[sort.key], y = b[sort.key];
+    if (x == null || x === '') return 1;
+    if (y == null || y === '') return -1;
+    return (typeof x === 'number' ? x - y : String(x).localeCompare(String(y))) * d;
+  });
+}
+function headRow(cols, sort) {
+  return '<tr>' + cols.map(c =>
+    `<th class="${c.l ? 'l' : ''}" data-k="${c.k}" ${c.title ? `title="${c.title}"` : ''}>${c.t}` +
+    (sort.key === c.k ? `<span class="arr">${sort.dir > 0 ? '▲' : '▼'}</span>` : '') + '</th>').join('') + '</tr>';
+}
+function wireSort(table, cols, sort, rerender) {
+  table.querySelectorAll('th').forEach(h => h.onclick = () => {
+    const k = h.dataset.k;
+    if (sort.key === k) sort.dir = -sort.dir;
+    else { sort.key = k; sort.dir = TEXT_KEYS.has(k) ? 1 : -1; }
+    rerender();
+  });
+}
+function jumpTo(code) { curCode = code; editing = null; switchTab('stock'); renderSide(); renderDetail(); }
+function wireJump(table) {
+  table.querySelectorAll('td[data-jump]').forEach(td => td.onclick = () => jumpTo(td.dataset.jump));
+}
+function countBar(rows) {
+  const held = rows.filter(r => r.held);
+  const n = k => held.filter(r => r.port === k).length;
+  return `共 <b>${rows.length}</b> 檔 · 我的 <b>${n('我的')}</b> · Adam <b>${n('Adam')}</b>`
+    + (n('觀察') ? ` · 觀察 <b>${n('觀察')}</b>` : '');
+}
+function baseRow(s) {
+  const m = M(s.code), t = (m && m.tech) || {};
+  return {
+    code:s.code, name:s.name, held:s.held !== false,
+    port: grpName(s),
+    close:t.close, chgPct:t.chgPct, _t:t, _m:m,
+  };
+}
+
+/* ─────────── Strategy Panel ─────────── */
+const SP_COLS = [
+  { k:'code',     t:'代號',   l:1 },
+  { k:'name',     t:'名稱',   l:1 },
+  { k:'rating',   t:'評等',   l:1 },
+  { k:'strategy', t:'策略',   l:1 },
+  { k:'close',    t:'收盤' },
+  { k:'chgPct',   t:'漲跌%' },
+  { k:'ratedAt',  t:'策略更新日', l:1 },
+  { k:'lastDate', t:'最後REVIEW', l:1 },
+];
+function spRow(s) {
+  const le = lastEntry(s);
+  return Object.assign(baseRow(s), {
+    rating:s.rating || '', strategy:s.strategy || '',
+    ratedAt:s.ratedAt || '', lastDate:le ? le.date : '',
+  });
+}
+function renderStrategy() {
+  const rows = sortRows(stocksArr(showArchived).map(spRow), spSort);
+  const body = rows.map(r => `<tr data-code="${r.code}" ${r.held ? '' : 'style="opacity:.55"'}>
+    <td class="cd" data-jump="${r.code}" style="cursor:pointer">${r.code}</td>
+    <td class="l nm" data-jump="${r.code}" style="cursor:pointer">${esc(r.name)}</td>
+    <td class="l tight">
+      <select class="cell-in" data-f="rating" data-code="${r.code}">
+        ${['', 'OW', 'N', 'UW'].map(v => `<option value="${v}" ${r.rating === v ? 'selected' : ''}>${v || '—'}</option>`).join('')}
+      </select>
+    </td>
+    <td class="l tight" style="min-width:280px">
+      <input class="cell-in txt" data-f="strategy" data-code="${r.code}"
+             value="${esc(r.strategy)}" placeholder="一句話策略">
+    </td>
+    <td>${nf(r.close)}</td>
+    <td class="${cls(r.chgPct)}">${pctTxt(r.chgPct)}</td>
+    <td class="l cd">${r.ratedAt || '—'}</td>
+    <td class="l cd">${r.lastDate || '—'}</td>
+  </tr>`).join('');
+  const tbl = $('#sp-table');
+  tbl.innerHTML = `<thead>${headRow(SP_COLS, spSort)}</thead><tbody>${body}</tbody>`;
+  $('#sp-count').innerHTML = countBar(rows)
+    + ` · 已評等 <b>${rows.filter(r => r.rating).length}</b>`;
+  wireSort(tbl, SP_COLS, spSort, renderStrategy);
+  wireJump(tbl);
+  tbl.querySelectorAll('[data-f]').forEach(inp => {
+    const st = state.stocks[inp.dataset.code], f = inp.dataset.f;
+    const commit = () => {
+      const v = f === 'rating' ? inp.value : inp.value;
+      if ((st[f] || '') === v) return;
+      st[f] = v;
+      st.ratedAt = todayISO();
+      markDirty();
+      const cell = inp.closest('tr').children[6];
+      if (cell) cell.textContent = st.ratedAt;
+      if (f === 'rating') renderSide();
+    };
+    if (f === 'rating') inp.onchange = commit; else inp.onchange = commit;
+  });
+}
+
+/* ─────────── Overview（估值 / 動能 / 信用） ─────────── */
+const OV_COLS = [
+  { k:'code',    t:'代號',  l:1 },
+  { k:'name',    t:'名稱',  l:1 },
+  { k:'close',   t:'收盤' },
+  { k:'chgPct',  t:'漲跌%' },
+  { k:'pe',      t:'本益比', title:'手動填寫' },
+  { k:'hist',    t:'MACD柱', title:'柱狀值 = DIF − MACD' },
+  { k:'histChg', t:'柱變化', title:'柱狀值單日增減' },
+  { k:'trend',   t:'多空',  l:1 },
+  { k:'k',       t:'K' },
+  { k:'d',       t:'D' },
+  { k:'kd',      t:'K−D' },
+  { k:'pc',      t:'P/C %', title:'券資比 = 融券餘額 / 融資餘額' },
+];
+function ovRow(s) {
+  const b = baseRow(s), t = b._t, cr = (b._m && b._m.credit) || { value:[] };
+  const hist = t.hist, hp = t.histPrev;
+  return Object.assign(b, {
+    pe: s.pe == null ? null : s.pe, peAt: s.peAt || '',
+    hist, histChg: (hist != null && hp != null) ? hist - hp : null,
+    trend: t.trend || '', axis: t.position || '', cross: t.cross || '',
+    k: t.k, d: t.d, kd: (t.k != null && t.d != null) ? t.k - t.d : null,
+    kdCross: t.kdCross || '', pc: cr.value[2],
+  });
+}
+function renderOverview() {
+  const rows = sortRows(stocksArr(showArchived).map(ovRow), ovSort);
+  const body = rows.map(r => `<tr data-code="${r.code}" ${r.held ? '' : 'style="opacity:.55"'}>
+    <td class="cd" data-jump="${r.code}" style="cursor:pointer">${r.code}</td>
+    <td class="l nm" data-jump="${r.code}" style="cursor:pointer">${esc(r.name)}</td>
+    <td>${nf(r.close)}</td>
+    <td class="${cls(r.chgPct)}">${pctTxt(r.chgPct)}</td>
+    <td class="tight"><input class="cell-in" data-pe="${r.code}" value="${r.pe == null ? '' : r.pe}"
+        placeholder="—" title="${r.peAt ? '更新於 ' + r.peAt : '尚未填寫'}"></td>
+    <td class="${cls(r.hist)}">${nf(r.hist)}</td>
+    <td class="${cls(r.histChg)}">${r.histChg == null ? '—' : sgn(r.histChg, 2)}</td>
+    <td class="l">${r.trend
+        ? `<span class="${r.trend === '多頭' ? 'pos' : 'neg'}">${r.trend}</span>`
+          + `<span class="dim">${r.axis === '零軸上' ? ' ↑' : ' ↓'}</span>`
+          + (r.cross ? `<span class="pill ${r.cross === '黃金交叉' ? 'OW' : 'UW'}" style="margin-left:5px">${r.cross[0] + r.cross[2]}</span>` : '')
+        : '—'}</td>
+    <td>${nf(r.k, 1)}</td>
+    <td>${nf(r.d, 1)}</td>
+    <td class="${cls(r.kd)}">${r.kd == null ? '—' : sgn(r.kd, 1)}${r.kdCross ? `<span class="sub-n">${r.kdCross[0] + r.kdCross[2]}</span>` : ''}</td>
+    <td>${nf(r.pc)}</td>
+  </tr>`).join('');
+  const tbl = $('#ov-table');
+  tbl.innerHTML = `<thead>${headRow(OV_COLS, ovSort)}</thead><tbody>${body}</tbody>`;
+  $('#ov-count').innerHTML = countBar(rows)
+    + ` · 已填本益比 <b>${rows.filter(r => r.pe != null).length}</b>`;
+  wireSort(tbl, OV_COLS, ovSort, renderOverview);
+  wireJump(tbl);
+  tbl.querySelectorAll('[data-pe]').forEach(inp => inp.onchange = () => {
+    const st = state.stocks[inp.dataset.pe];
+    const v = inp.value.trim();
+    const num = v === '' ? null : Number(v);
+    if (v !== '' && isNaN(num)) { inp.value = st.pe == null ? '' : st.pe; return; }
+    if (st.pe === num) return;
+    st.pe = num;
+    st.peAt = num == null ? null : todayISO();
+    inp.title = st.peAt ? '更新於 ' + st.peAt : '尚未填寫';
+    markDirty();
+    $('#ov-count').innerHTML = countBar(rows)
+      + ` · 已填本益比 <b>${stocksArr(showArchived).filter(x => x.pe != null).length}</b>`;
+  });
+}
+
+/* ─────────── 個股清單 ─────────── */
+function renderSide() {
+  const q = sideQ.trim().toLowerCase();
+  const list = stocksArr(sideFilter === 'out' || sideFilter === 'noted').filter(s => {
+    if (q && !(s.code.includes(q) || s.name.toLowerCase().includes(q))) return false;
+    if (sideFilter === 'out') return s.held === false;
+    if (sideFilter === 'noted') return (s.entries || []).length > 0;
+    if (sideFilter === 'SIVI' || sideFilter === 'ADAM' || sideFilter === 'WATCH') return grp(s) === sideFilter;
+    if (sideFilter === 'OW' || sideFilter === 'UW') return s.rating === sideFilter;
+    return true;
+  });
+  $('#slist').innerHTML = list.map(s => {
+    const t = (M(s.code) || {}).tech || {};
+    return `<div class="sitem ${s.code===curCode?'on':''}" data-code="${s.code}">
+      <span class="dotn ${(s.entries||[]).length?'':'off'}"></span>
+      <span class="c">${s.code}</span>
+      <span class="n">${esc(s.name)}</span>
+      ${s.held === false ? '<span class="pill">出</span>' : ''}
+      ${s.rating ? `<span class="pill ${s.rating}">${s.rating}</span>` : ''}
+      <span class="p ${cls(t.chgPct)}">${pctTxt(t.chgPct)}</span>
+    </div>`;
+  }).join('') || '<div class="empty-box">沒有符合的個股</div>';
+  $('#slist').querySelectorAll('.sitem').forEach(d => d.onclick = () => {
+    curCode = d.dataset.code; editing = null; renderSide(); renderDetail();
+    document.querySelector('#detail').scrollIntoView({ behavior:'smooth', block:'start' });
+  });
+}
+
+/* ─────────── 個股明細 ─────────── */
+function kpi(k, v, sub, extra) {
+  return `<div class="kpi"><div class="k">${k}</div><div class="v">${v}</div>`
+       + (sub ? `<div class="s">${sub}</div>` : '') + (extra || '') + '</div>';
+}
+/* 千張大戶近 8 週的逐週增減條 */
+function streakBars(big) {
+  const w = (big && big.weeks) || [];
+  if (w.length < 2) return '';
+  const bars = w.slice(1).map((cur, i) => {
+    const dv = cur[1] - w[i][1];
+    const c = dv > 0 ? 'u' : dv < 0 ? 'd' : '';
+    return `<i class="${c}" title="${cur[0]} ${cur[1]}% (${sgn(dv, 2)}pp)"></i>`;
+  }).join('');
+  return `<div class="streak">${bars}</div>`;
+}
+
+function renderDetail() {
+  const wrapEl = $('#detail');
+  if (!curCode || !state.stocks[curCode]) {
+    wrapEl.innerHTML = '<div class="card"><div class="empty-box">← 從左側選一檔個股</div></div>';
+    return;
+  }
+  const s = state.stocks[curCode], m = M(curCode), t = (m && m.tech) || {};
+  const histChg = (t.hist != null && t.histPrev != null) ? t.hist - t.histPrev : null;
+  const kd = (t.k != null && t.d != null) ? t.k - t.d : null;
+  const cr = (m && m.credit) || { value:[] };
+  const big = m && m.big;
+  const kpis = [
+    kpi('MACD 柱',
+        `<span class="${cls(t.hist)}">${nf(t.hist)}</span>`,
+        [histChg == null ? null : `Δ <span class="${cls(histChg)}">${sgn(histChg, 2)}</span>`,
+         t.trend ? `<span class="${t.trend === '多頭' ? 'pos' : 'neg'}">${t.trend}</span> ${t.position || ''}` : null,
+         t.cross || null].filter(Boolean).join(' · ')),
+    kpi('K', nf(t.k, 1),
+        [kd == null ? null : `K−D <span class="${cls(kd)}">${sgn(kd, 1)}</span>`,
+         t.kdCross ? `<span class="${t.kdCross === '黃金交叉' ? 'pos' : 'neg'}">${t.kdCross === '黃金交叉' ? '黃交' : '死交'}</span>` : null
+        ].filter(Boolean).join(' · ')),
+    kpi('YTD 高', nf(t.ytdHigh), t.ytdHighDate ? `${t.ytdHighDate} · ${pctTxt(t.fromHigh)}` : ''),
+    kpi('YTD 低', nf(t.ytdLow), t.ytdLowDate ? `${t.ytdLowDate} · ${pctTxt(t.fromLow)}` : ''),
+    kpi('融資 UR', cr.value[0] != null ? (cr.value[0] * 100).toFixed(2) + '%' : '—', ''),
+    kpi('券資比 P/C', nf(cr.value[2]), ''),
+    kpi('千張大戶', big ? nf(big.pct) + '%' : '—',
+        big ? [big.streak ? `<span class="${big.dir === '增' ? 'pos' : 'neg'}">連 ${big.streak} 週${big.dir}</span>` : '持平',
+               big.chg == null ? null : `${sgn(big.chg, 2)}pp`,
+               big.date ? big.date.slice(5) : null].filter(Boolean).join(' · ') : '',
+        streakBars(big)),
+  ].join('');
+
+  const hasToday = (s.entries || []).some(e => e.date === todayISO());
+  wrapEl.innerHTML = `
+    <div class="card">
+      <div class="stock-head">
+        <div class="sh-top">
+          <span class="code">${s.code}</span>
+          <span class="name">${esc(s.name)}</span>
+          <span class="pill ${s.held === false ? '' : 'tag'}">${grpName(s)}</span>
+          <span class="px">${nf(t.close)}</span>
+          <span class="chg ${cls(t.chgPct)}">${pctTxt(t.chgPct)}</span>
+          <span class="spacer"></span>
+          <button class="btn sm primary" id="add-entry">${hasToday ? '再新增一筆 Review' : '新增今日 Review'}</button>
+        </div>
+        <div class="sh-ctl">
+          <label>組合</label>
+          <select id="f-group">
+            ${['SIVI','ADAM','WATCH'].map(g => `<option value="${g}" ${grp(s)===g?'selected':''}>${PORT_NAME[g]}</option>`).join('')}
+          </select>
+          <label>ORDER</label>
+          <select id="f-rating">
+            ${['','OW','N','UW'].map(r => `<option value="${r}" ${s.rating===r?'selected':''}>${r||'—'}</option>`).join('')}
+          </select>
+          <label>STRATEGY</label>
+          <input type="text" class="grow" id="f-strategy" value="${esc(s.strategy)}" placeholder="一句話策略">
+          <label>TAG</label>
+          <input type="text" id="f-tag" style="width:120px" value="${esc(s.revTag)}" placeholder="如 8m rev ★">
+        </div>
+      </div>
+      <div class="kpis">${kpis}</div>
+      <div class="entries" id="entries"></div>
+    </div>`;
+
+  $('#f-group').onchange = e => {
+    s.group = e.target.value;
+    markDirty(); renderSide(); renderStrategy(); renderOverview(); renderDetail();
+  };
+  $('#f-rating').onchange = e => { s.rating = e.target.value; s.ratedAt = todayISO(); markDirty(); renderSide(); renderStrategy(); };
+  $('#f-strategy').onchange = e => { s.strategy = e.target.value; s.ratedAt = todayISO(); markDirty(); renderStrategy(); };
+  $('#f-tag').oninput = e => { s.revTag = e.target.value; markDirty(); };
+  $('#add-entry').onclick = () => {
+    const e = newEntry(curCode);
+    s.entries.unshift(e);
+    s.entries.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+    editing = s.entries.indexOf(e);
+    markDirty(); renderEntries(); renderSide();
+    toast('已帶入 ' + ((M(curCode)||{}).tech||{}).date + ' 的技術與籌碼數據');
+  };
+  renderEntries();
+}
+
+/* 自低漲幅：優先用該筆的 價格/低點 現算，legacy 筆記的 pct 是小數需 ×100 */
+function entryPct(e) {
+  if (e.price != null && e.low) return (e.price / e.low - 1) * 100;
+  if (e.pct == null) return null;
+  return e.src === 'numbers' ? e.pct * 100 : e.pct;
+}
+
+function grid4(e, k, isEdit) {
+  const sec = e[k]; if (!DEF_LABELS[k]) return '';
+  const labels = sec.labels || DEF_LABELS[k];
+  const rows = ROW_KEYS[k];
+  const hasAny = rows.some(r => (sec[r] || []).some(v => v != null));
+  if (!isEdit && !hasAny) return '';
+  const isUR = i => k === 'S' && labels[i] === '融資UR';
+  const fmtCell = (r, v, i) => {
+    if (v == null) return '<span class="dim">—</span>';
+    if (r === 'change') {
+      const txt = isUR(i) ? sgn(v * 100, 2) + 'pp' : sgn(v, Number.isInteger(v) ? 0 : 2);
+      return `<span class="${cls(v)}">${txt}</span>`;
+    }
+    if (k === 'I' && r === 'ratio') return (v * 100).toFixed(2) + '%';
+    if (isUR(i)) return (v * 100).toFixed(2) + '%';
+    return Number.isInteger(v) ? ni(v) : nf(v);
+  };
+  const head = `<tr><th class="rl"></th>${labels.map((l, i) => isEdit
+      ? `<th><input class="lab" data-k="${k}" data-r="labels" data-i="${i}" value="${esc(l)}"></th>`
+      : `<th>${esc(l)}</th>`).join('')}</tr>`;
+  const body = rows.map(r => `<tr><td class="rl">${ROW_NAME[r]}</td>${labels.map((_, i) => {
+      const v = (sec[r] || [])[i];
+      return isEdit
+        ? `<td><input type="text" data-k="${k}" data-r="${r}" data-i="${i}" value="${v == null ? '' : v}"></td>`
+        : `<td>${fmtCell(r, v, i)}</td>`;
+    }).join('')}</tr>`).join('');
+  return `<div class="grid4"><table><thead>${head}</thead><tbody>${body}</tbody></table></div>`;
+}
+
+function renderEntries() {
+  const s = state.stocks[curCode];
+  const box = $('#entries');
+  if (!s.entries.length) {
+    box.innerHTML = '<div class="empty-box">這檔還沒有 Review 筆記。<br>按上面「新增今日 Review」會自動帶入當日技術面與籌碼數據。</div>';
+    return;
+  }
+  box.innerHTML = s.entries.map((e, idx) => {
+    const isEdit = editing === idx;
+    const rng = [e.peakLabel && e.peak != null ? `${e.peakLabel} ${nf(e.peak)}` : null,
+                 e.lowLabel && e.low != null ? `${e.lowLabel} ${nf(e.low)}` : null].filter(Boolean).join('　');
+    const secs = SECS.map(k => {
+      const sec = e[k] || { text:'' };
+      const txt = isEdit
+        ? `<textarea data-k="${k}" data-r="text">${esc(sec.text)}</textarea>`
+        : `<div class="txt ${sec.text ? '' : 'empty'}">${sec.text ? esc(sec.text) : '（未填）'}</div>`;
+      return `<div class="sec" data-s="${k}">
+          <div class="badge">${k}</div>
+          <div class="body"><div class="lbl">${SEC_NAME[k]}</div>${txt}${grid4(e, k, isEdit)}</div>
+        </div>`;
+    }).join('');
+    return `<div class="entry ${isEdit ? 'editing' : ''}" data-idx="${idx}">
+      <div class="e-head">
+        ${isEdit ? `<input type="date" style="width:150px" data-r="date" value="${e.date || ''}">`
+                 : `<span class="d">${e.date || '—'}</span>`}
+        <span class="px">${nf(e.price)}</span>
+        ${entryPct(e) != null ? `<span class="px ${cls(entryPct(e))}">自低 ${pctTxt(entryPct(e))}</span>` : ''}
+        <span class="rng">${rng}</span>
+        ${e.src === 'auto' ? '<span class="pill tag">AUTO</span>' : ''}
+        <span class="sp"></span>
+        <button class="btn sm" data-act="${isEdit ? 'done' : 'edit'}">${isEdit ? '完成' : '編輯'}</button>
+        ${isEdit ? `<button class="btn sm" data-act="refill">重新帶入數據</button>
+                    <button class="btn sm danger" data-act="del">刪除</button>` : ''}
+      </div>
+      <div class="e-body">${secs}</div>
+    </div>`;
+  }).join('');
+
+  box.querySelectorAll('.entry').forEach(node => {
+    const idx = +node.dataset.idx, e = s.entries[idx];
+    node.querySelectorAll('[data-act]').forEach(b => b.onclick = () => {
+      const a = b.dataset.act;
+      if (a === 'edit') { editing = idx; renderEntries(); }
+      else if (a === 'done') { editing = null; renderEntries(); }
+      else if (a === 'del') {
+        if (!confirm(`刪除 ${e.date} 這筆 Review？`)) return;
+        s.entries.splice(idx, 1); editing = null; markDirty(); renderEntries(); renderSide();
+      } else if (a === 'refill') {
+        const fresh = newEntry(curCode, e.date);
+        SECS.forEach(k => {
+          const keep = (e[k] && e[k].text) || '';
+          e[k] = fresh[k];
+          if (keep && (k === 'F' || k === 'O')) e[k].text = keep;
+        });
+        e.price = fresh.price; e.peak = fresh.peak; e.low = fresh.low; e.pct = fresh.pct;
+        e.peakLabel = fresh.peakLabel; e.lowLabel = fresh.lowLabel; e.auto = fresh.auto; e.src = 'auto';
+        markDirty(); renderEntries(); toast('已重新帶入最新數據（F/O 文字保留）');
+      }
+    });
+    node.querySelectorAll('textarea[data-k], input[data-k]').forEach(inp => {
+      inp.oninput = () => {
+        const k = inp.dataset.k, r = inp.dataset.r, i = inp.dataset.i;
+        if (r === 'text') { e[k].text = inp.value; }
+        else if (r === 'labels') { (e[k].labels = e[k].labels || DEF_LABELS[k].slice())[+i] = inp.value; }
+        else {
+          if (!e[k][r]) e[k][r] = [null,null,null,null];
+          const v = inp.value.trim();
+          e[k][r][+i] = v === '' ? null : (isNaN(Number(v)) ? v : Number(v));
+        }
+        markDirty();
+      };
+    });
+    const dt = node.querySelector('input[data-r=date]');
+    if (dt) dt.onchange = () => {
+      e.date = dt.value;
+      s.entries.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+      editing = s.entries.indexOf(e); markDirty(); renderEntries(); renderSide();
+    };
+  });
+}
+
+/* ─────────── 大盤 ─────────── */
+function renderMarket() {
+  const mk = METRICS && METRICS.market;
+  $('#mk-px').textContent = mk ? nf(mk.close) : '—';
+  const c = $('#mk-chg');
+  c.textContent = mk ? pctTxt(mk.chgPct) : ''; c.className = 'chg ' + (mk ? cls(mk.chgPct) : '');
+  $('#mk-kpis').innerHTML = mk ? [
+    kpi('資料日', mk.date, ''),
+    kpi('月線 MA20', nf(mk.ma20), pctTxt(mk.vsMa20)),
+    kpi('季線 MA60', nf(mk.ma60), pctTxt(mk.vsMa60)),
+    kpi('年線 MA240', nf(mk.ma240), pctTxt(mk.vsMa240)),
+    kpi('MACD', nf(mk.macd), (mk.trend||'') + (mk.position?' · '+mk.position:'')),
+    kpi('KD', `${nf(mk.k,1)}/${nf(mk.d,1)}`, mk.kdCross || ''),
+    kpi('RSI', nf(mk.rsi,1), ''),
+    kpi('YTD 高', nf(mk.ytdHigh), `${mk.ytdHighDate} · ${pctTxt(mk.fromHigh)}`),
+    kpi('YTD 低', nf(mk.ytdLow), `${mk.ytdLowDate} · ${pctTxt(mk.fromLow)}`),
+    kpi('YTD 報酬', pctTxt(mk.ytdRet), ''),
+  ].join('') : '';
+
+  const notes = (state.market.notes || []);
+  $('#mk-notes').innerHTML = notes.length ? notes.map((n, i) => `
+    <div class="mnote" data-i="${i}">
+      <div class="h">
+        <span class="d">${n.date}</span><span class="sp"></span>
+        <button class="btn sm" data-act="edit">編輯</button>
+        <button class="btn sm danger" data-act="del">刪除</button>
+      </div>
+      <div class="b">${n.editing ? `<textarea style="min-height:110px">${esc(n.text)}</textarea>`
+                                 : (n.text ? esc(n.text) : '<span class="dim">（未填）</span>')}</div>
+    </div>`).join('') : '<div class="empty-box">還沒有大盤筆記</div>';
+
+  $('#mk-notes').querySelectorAll('.mnote').forEach(node => {
+    const i = +node.dataset.i, n = notes[i];
+    node.querySelectorAll('[data-act]').forEach(b => b.onclick = () => {
+      if (b.dataset.act === 'del') {
+        if (!confirm(`刪除 ${n.date} 的大盤筆記？`)) return;
+        notes.splice(i, 1); markDirty();
+      } else { n.editing = !n.editing; }
+      renderMarket();
+    });
+    const ta = node.querySelector('textarea');
+    if (ta) ta.oninput = () => { n.text = ta.value; markDirty(); };
+  });
+}
+function marketDraft() {
+  const mk = METRICS && METRICS.market; if (!mk) return '';
+  return [`加權指數 ${nf(mk.close)}（${pctTxt(mk.chgPct)}）`,
+          `月線 ${nf(mk.ma20)}(${pctTxt(mk.vsMa20)})，季線 ${nf(mk.ma60)}(${pctTxt(mk.vsMa60)})，年線 ${nf(mk.ma240)}(${pctTxt(mk.vsMa240)})`,
+          `MACD ${mk.trend}・${mk.position}，KD ${nf(mk.k,1)}/${nf(mk.d,1)}，RSI ${nf(mk.rsi,1)}`,
+          `YTD 高 ${nf(mk.ytdHigh)} @${mk.ytdHighDate}（距高 ${pctTxt(mk.fromHigh)}）`,
+          `YTD 低 ${nf(mk.ytdLow)} @${mk.ytdLowDate}（自低 ${pctTxt(mk.fromLow)}）`,
+          `YTD 報酬 ${pctTxt(mk.ytdRet)}`].join('\n');
+}
+
+/* ─────────── TABS ─────────── */
+function switchTab(name) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab === name));
+  document.querySelectorAll('.panel').forEach(p => p.classList.toggle('active', p.id === 'p-' + name));
+  if (name === 'strategy') renderStrategy();
+  if (name === 'overview') renderOverview();
+  if (name === 'market') renderMarket();
+}
+
+/* ─────────── EXPORT ─────────── */
+function download(name, blob) {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob); a.download = name;
+  document.body.appendChild(a); a.click();
+  setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 500);
+}
+async function exportEnc() {
+  if (!password) { toast('尚未設定密碼'); return; }
+  state.updated = new Date().toISOString();
+  const bin = await encryptPayload(JSON.stringify(state), password);
+  download('review.enc', new Blob([bin], { type:'application/octet-stream' }));
+  markClean();
+  toast('已下載 review.enc — 覆蓋到 data/ 後 git push');
+}
+
+/* ─────────── BOOT ─────────── */
+function normalize(s) {
+  s = s || {};
+  s.version = 1;
+  s.market = s.market || { notes:[] };
+  s.market.notes = s.market.notes || [];
+  s.stocks = s.stocks || {};
+  // metrics 有、筆記沒有的個股 → 補空殼，讓新持股也能直接寫 review
+  if (METRICS && METRICS.stocks) {
+    Object.values(s.stocks).forEach(st => { st.held = false; });
+    Object.values(METRICS.stocks).forEach(m => {
+      const st = s.stocks[m.code] || (s.stocks[m.code] =
+        { code:m.code, name:m.name, rating:'', strategy:'', revTag:'', ratedAt:null, entries:[] });
+      if (m.name) st.name = m.name;
+      st.portfolio = m.portfolio;      // 每日持股交易數據就是「目前持股」的權威來源
+      st.held = true;
+    });
+  }
+  Object.values(s.stocks).forEach(st => {
+    st.entries = st.entries || [];
+    st.entries.forEach(e => SECS.forEach(k => { if (!e[k]) e[k] = { text:'' }; }));
+    st.entries.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+  });
+  return s;
+}
+function boot(loaded) {
+  state = normalize(loaded);
+  $('#login').classList.add('hidden');
+  $('#app').classList.add('active');
+  const st = $('#stamp-data');
+  st.innerHTML = METRICS
+    ? `股價 <b>${METRICS.priceDate || '—'}</b> · 籌碼 <b>${METRICS.chipDate || '—'}</b>`
+    : '<b>無 review-metrics.json</b>';
+  const noted = stocksArr(true).filter(s => s.entries.length);
+  curCode = (noted[0] || stocksArr()[0] || {}).code || null;
+  renderStrategy(); renderOverview(); renderSide(); renderDetail();
+  try { localStorage.setItem(LS_KEY, JSON.stringify(state)); } catch (e) {}
+  markClean();
+}
+
+async function loadMetrics() {
+  try {
+    const r = await fetch(METRICS_PATH, { cache:'no-store' });
+    if (r.ok) METRICS = await r.json();
+  } catch (e) { console.warn('review-metrics.json 讀取失敗', e); }
+}
+
+let encBlob = null, seedData = null;
+
+async function init() {
+  await loadMetrics();
+  try {
+    const r = await fetch(ENC_PATH, { cache:'no-store' });
+    if (r.ok) {
+      const b = new Uint8Array(await r.arrayBuffer());
+      if (b.length > 32 && b[0] === MAGIC[0] && b[1] === MAGIC[1]) encBlob = b;
+    }
+  } catch (e) {}
+  if (!encBlob) {
+    $('#import-box').style.display = 'block';
+    $('#login-sub').textContent = '首次使用：設定一組密碼，之後每次用它解鎖。';
+    $('#unlock').textContent = '建立';
+  }
+}
+
+$('#seed-file').onchange = async ev => {
+  const f = ev.target.files[0]; if (!f) return;
+  try {
+    seedData = JSON.parse(await f.text());
+    const n = Object.keys(seedData.stocks || {}).length;
+    $('#login-msg').className = 'login-msg ok';
+    $('#login-msg').textContent = `已讀取 ${f.name}（${n} 檔），輸入密碼後按「建立」。`;
+  } catch (e) {
+    $('#login-msg').className = 'login-msg err';
+    $('#login-msg').textContent = 'JSON 讀取失敗：' + e.message;
+  }
+};
+
+$('#unlock').onclick = async () => {
+  const pw = $('#pw').value;
+  const msg = $('#login-msg');
+  if (!pw) { msg.className = 'login-msg err'; msg.textContent = '請輸入密碼'; return; }
+  if (!encBlob) {
+    password = pw;
+    boot(seedData || { version:1, market:{ notes:[] }, stocks:{} });
+    if (seedData) { markDirty(); toast('已匯入筆記 — 請按「下載加密檔」產生 review.enc'); }
+    return;
+  }
+  msg.className = 'login-msg'; msg.textContent = '解鎖中…';
+  try {
+    const plain = await decryptPayload(encBlob, pw);
+    password = pw;
+    boot(JSON.parse(plain));
+  } catch (e) {
+    msg.className = 'login-msg err';
+    msg.textContent = '密碼錯誤或檔案損毀';
+  }
+};
+$('#pw').onkeydown = e => { if (e.key === 'Enter') $('#unlock').click(); };
+
+document.querySelectorAll('.tab').forEach(t => t.onclick = () => switchTab(t.dataset.tab));
+document.querySelectorAll('.fbtn').forEach(b => b.onclick = () => {
+  sideFilter = b.dataset.f;
+  document.querySelectorAll('.fbtn').forEach(x => x.classList.toggle('active', x === b));
+  renderSide();
+});
+$('#sq').oninput = e => { sideQ = e.target.value; renderSide(); };
+document.querySelectorAll('[data-arch]').forEach(b => b.onclick = () => {
+  showArchived = !showArchived;
+  document.querySelectorAll('[data-arch]').forEach(x => {
+    x.classList.toggle('primary', showArchived);
+    x.textContent = showArchived ? '只看持股' : '含已出場';
+  });
+  renderStrategy(); renderOverview();
+});
+$('#btn-export').onclick = exportEnc;
+$('#btn-json').onclick = () => download('review-notes.json',
+  new Blob([JSON.stringify(state, null, 1)], { type:'application/json' }));
+$('#mk-add').onclick = () => {
+  const d = todayISO();
+  if (state.market.notes.some(n => n.date === d) && !confirm(`${d} 已有一筆，仍要新增？`)) return;
+  state.market.notes.unshift({ date:d, text:marketDraft(), editing:true });
+  state.market.notes.sort((a, b) => b.date.localeCompare(a.date));
+  markDirty(); renderMarket();
+};
+window.addEventListener('beforeunload', e => { if (dirty) { e.preventDefault(); e.returnValue = ''; } });
+
+init();
+})();
+</script>
+</body>
+</html>

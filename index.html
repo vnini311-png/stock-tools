@@ -48,6 +48,10 @@
     --turn-accent2: #f472b6;
     --turn-glow: rgba(236, 72, 153, 0.18);
 
+    --note-accent: #818cf8;
+    --note-accent2: #e879f9;
+    --note-glow: rgba(129, 140, 248, 0.18);
+
     --mono: 'IBM Plex Mono', monospace;
     --sans: 'IBM Plex Sans TC', sans-serif;
   }
@@ -216,6 +220,11 @@
     --card-accent2: var(--turn-accent2);
     --card-glow: var(--turn-glow);
   }
+  .card-note {
+    --card-accent: var(--note-accent);
+    --card-accent2: var(--note-accent2);
+    --card-glow: var(--note-glow);
+  }
   .card-lock {
     font-family: var(--mono);
     font-size: 10px;
@@ -348,11 +357,11 @@
       <div class="brand-mark">▣</div>
       <h1>STOCK TOOLS</h1>
     </div>
-    <p class="subtitle">持股分析工具集 ｜ 月營收追蹤、季度獲利、MACD 技術指標、籌碼觀察、風險報酬落點、自選股熱力圖</p>
+    <p class="subtitle">持股分析工具集 ｜ 月營收追蹤、季度獲利、MACD 技術指標、籌碼觀察、風險報酬落點、自選股熱力圖、每日 Review 筆記</p>
     <div class="meta-bar">
       <span><span class="dot"></span>ONLINE</span>
       <span>STATIC · NO SERVER</span>
-      <span>v1.4</span>
+      <span>v1.5</span>
     </div>
   </header>
 
@@ -532,6 +541,29 @@
       </div>
       <div class="card-foot">
         <span class="card-cta">解鎖資料</span>
+        <span class="card-arrow">→</span>
+      </div>
+    </a>
+
+    <a href="tools/daily-review.html" class="card card-note">
+      <div class="card-head">
+        <div class="card-num">09 / PRIVATE</div>
+        <div class="card-tag">私密<span class="card-lock">🔒</span></div>
+      </div>
+      <div class="card-title">持股每日 Review 筆記</div>
+      <div class="card-sub">DAILY REVIEW · T / I / S / F / O</div>
+      <div class="card-desc">
+        沿用 Numbers 的五段式筆記架構（技術面、籌碼面、信用交易、基本面、總結），逐檔逐日記錄。
+        新增 Review 時自動帶入當日 MACD/KD/RSI、三大法人與融資融券數據，只需補上判斷。資料 AES-GCM 加密。
+      </div>
+      <div class="card-features">
+        <span class="feat">40 檔持股</span>
+        <span class="feat">T/I/S/F/O</span>
+        <span class="feat">數據自動帶入</span>
+        <span class="feat">AES 加密</span>
+      </div>
+      <div class="card-foot">
+        <span class="card-cta">解鎖筆記</span>
         <span class="card-arrow">→</span>
       </div>
     </a>
