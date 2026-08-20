@@ -404,6 +404,7 @@ const METRICS_PATH = '../data/review-metrics.json';
 const LS_KEY = 'daily_review_v1';
 const LS_PREV = 'daily_review_v1_prev';   // 覆蓋前的上一版草稿，救命用
 const SECS = ['T','I','S','F','O'];
+const DEFAULT_TAGS = ['7m rev'];   // 首次建立時的 TAG 清單，之後由「⚙ 管理清單…」維護
 const SEC_NAME = { T:'技術面 TECHNICAL', I:'籌碼面 INSTITUTIONAL', S:'信用交易 SHORT / MARGIN', F:'基本面 FUNDAMENTAL', O:'總結 OVERALL' };
 const DEF_LABELS = { T:['MACD柱','K','D','K−D'], I:['QFII','QDII','Trader'], S:['融資','融資UR','融券','P/C','LS'] };
 const ROW_KEYS = { T:['value'], I:['value','change','ratio'], S:['value','change'] };
@@ -589,33 +590,37 @@ function wireSort(table, cols, sort, rerender) {
     rerender();
   });
 }
-function tagOptions() {
-  const set = new Set();
-  Object.values(state.stocks).forEach(st => {
-    const t = st.revTag;
-    if (typeof t === 'string' && t.trim() && isNaN(Number(t))) set.add(t.trim());
-  });
-  return [...set].sort((a, b) => a.localeCompare(b, 'zh-Hant'));
-}
+function tagOptions() { return state.tags || []; }
 function tagSelect(code, cur, cls) {
   const val = cur == null ? '' : String(cur);
   return `<select class="${cls}" data-tag="${code}">`
     + `<option value="" ${val === '' ? 'selected' : ''}>—</option>`
     + tagOptions().map(o =>
         `<option value="${esc(o)}" ${o === val ? 'selected' : ''}>${esc(o)}</option>`).join('')
-    + '<option value="" data-custom="1">＋ 自訂…</option></select>';
+    + '<option value="" data-custom="1">＋ 自訂…</option>'
+    + '<option value="" data-manage="1">⚙ 管理清單…</option></select>';
 }
 /* 回傳 true 表示值有變動，需要重畫（新標籤要加進其他列的選單） */
 function onTagChange(sel) {
   const st = state.stocks[sel.dataset.tag];
   const opt = sel.selectedOptions[0];
+  const keep = typeof st.revTag === 'string' ? st.revTag : '';
   let v = sel.value;
-  if (opt && opt.dataset.custom) {
-    const input = prompt('輸入新的 TAG（例如 8m rev ★）', typeof st.revTag === 'string' ? st.revTag : '');
-    if (input === null) { sel.value = typeof st.revTag === 'string' ? st.revTag : ''; return false; }
-    v = input.trim();
+  if (opt && opt.dataset.manage) {
+    const edited = prompt('編輯 TAG 清單（一行一個，刪掉整行即移除）', (state.tags || []).join('\n'));
+    sel.value = keep;
+    if (edited === null) return false;
+    state.tags = [...new Set(edited.split('\n').map(x => x.trim()).filter(Boolean))];
+    markDirty();
+    return true;
   }
-  if ((st.revTag || '') === v) return false;
+  if (opt && opt.dataset.custom) {
+    const input = prompt('輸入新的 TAG（例如 8m rev ★）', keep);
+    if (input === null) { sel.value = keep; return false; }
+    v = input.trim();
+    if (v && !(state.tags || []).includes(v)) { state.tags = [...(state.tags || []), v]; }
+  }
+  if ((st.revTag || '') === v && !(opt && opt.dataset.custom)) return false;
   st.revTag = v;
   markDirty();
   return true;
@@ -1154,6 +1159,7 @@ function normalize(s) {
   s.market = s.market || { notes:[] };
   s.market.notes = s.market.notes || [];
   s.stocks = s.stocks || {};
+  if (!Array.isArray(s.tags)) s.tags = DEFAULT_TAGS.slice();
   // metrics 有、筆記沒有的個股 → 補空殼，讓新持股也能直接寫 review
   if (METRICS && METRICS.stocks) {
     Object.values(s.stocks).forEach(st => { st.held = false; });
