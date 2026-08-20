@@ -16,6 +16,9 @@
     --mono: 'IBM Plex Mono', monospace; --sans: 'IBM Plex Sans TC', sans-serif;
   }
   * { margin:0; padding:0; box-sizing:border-box; }
+  /* 深色主題要自己定義選取樣式，否則瀏覽器預設是淺藍底＋黑字，選起來像壞掉 */
+  ::selection { background:rgba(129,140,248,0.38); color:#fff; }
+  input::selection, textarea::selection { background:rgba(129,140,248,0.38); color:#fff; }
   body {
     background: var(--bg); color: var(--text); font-family: var(--sans);
     min-height:100vh;
