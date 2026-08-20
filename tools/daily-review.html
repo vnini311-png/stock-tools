@@ -211,6 +211,8 @@
   td input.cell-in { font-family:var(--mono); text-align:right; }
   td input.cell-in.txt { font-family:var(--sans); text-align:left; }
   td select.cell-in { font-family:var(--mono); text-align:left; width:auto; min-width:64px; cursor:pointer; }
+  select.tagsel { color:var(--accent); font-weight:500; min-width:118px; }
+  .sh-ctl select.tagsel { font-family:var(--mono); font-size:12px; }
   td.tight { padding:4px 6px; }
   .sub-n { font-size:10px; color:var(--text-dim); margin-left:4px; }
 
@@ -587,6 +589,38 @@ function wireSort(table, cols, sort, rerender) {
     rerender();
   });
 }
+function tagOptions() {
+  const set = new Set();
+  Object.values(state.stocks).forEach(st => {
+    const t = st.revTag;
+    if (typeof t === 'string' && t.trim() && isNaN(Number(t))) set.add(t.trim());
+  });
+  return [...set].sort((a, b) => a.localeCompare(b, 'zh-Hant'));
+}
+function tagSelect(code, cur, cls) {
+  const val = cur == null ? '' : String(cur);
+  return `<select class="${cls}" data-tag="${code}">`
+    + `<option value="" ${val === '' ? 'selected' : ''}>—</option>`
+    + tagOptions().map(o =>
+        `<option value="${esc(o)}" ${o === val ? 'selected' : ''}>${esc(o)}</option>`).join('')
+    + '<option value="" data-custom="1">＋ 自訂…</option></select>';
+}
+/* 回傳 true 表示值有變動，需要重畫（新標籤要加進其他列的選單） */
+function onTagChange(sel) {
+  const st = state.stocks[sel.dataset.tag];
+  const opt = sel.selectedOptions[0];
+  let v = sel.value;
+  if (opt && opt.dataset.custom) {
+    const input = prompt('輸入新的 TAG（例如 8m rev ★）', typeof st.revTag === 'string' ? st.revTag : '');
+    if (input === null) { sel.value = typeof st.revTag === 'string' ? st.revTag : ''; return false; }
+    v = input.trim();
+  }
+  if ((st.revTag || '') === v) return false;
+  st.revTag = v;
+  markDirty();
+  return true;
+}
+
 function jumpTo(code) { curCode = code; editing = null; switchTab('stock'); renderSide(); renderDetail(); }
 function wireJump(table) {
   table.querySelectorAll('td[data-jump]').forEach(td => td.onclick = () => jumpTo(td.dataset.jump));
@@ -710,9 +744,7 @@ function renderOverview() {
     <td>${nf(r.k, 1)}</td>
     <td class="${cls(r.kd)}">${r.kd == null ? '—' : sgn(r.kd, 1)}${r.kdCross ? `<span class="sub-n">${r.kdCross[0] + r.kdCross[2]}</span>` : ''}</td>
     <td>${nf(r.pc)}</td>
-    <td class="l tight" style="min-width:130px">
-      <input type="text" class="cell-in txt" data-tag="${r.code}" value="${esc(r.tag)}" placeholder="—">
-    </td>
+    <td class="l tight">${tagSelect(r.code, r.tag, 'cell-in tagsel')}</td>
   </tr>`).join('');
   const tbl = $('#ov-table');
   tbl.innerHTML = `<thead>${headRow(OV_COLS, ovSort)}</thead><tbody>${body}</tbody>`;
@@ -720,12 +752,10 @@ function renderOverview() {
     + ` · 已填本益比 <b>${rows.filter(r => r.pe != null).length}</b>`;
   wireSort(tbl, OV_COLS, ovSort, renderOverview);
   wireJump(tbl);
-  tbl.querySelectorAll('[data-tag]').forEach(inp => inp.onchange = () => {
-    const st = state.stocks[inp.dataset.tag];
-    if ((st.revTag || '') === inp.value) return;
-    st.revTag = inp.value;
-    markDirty();
-    if (curCode === st.code) renderDetail();
+  tbl.querySelectorAll('[data-tag]').forEach(sel => sel.onchange = () => {
+    if (!onTagChange(sel)) return;
+    renderOverview();                       // 新標籤要出現在其他列的選單裡
+    if (curCode === sel.dataset.tag) renderDetail();
   });
   tbl.querySelectorAll('[data-pe]').forEach(inp => inp.onchange = () => {
     const st = state.stocks[inp.dataset.pe];
@@ -845,7 +875,7 @@ function renderDetail() {
           <label>STRATEGY</label>
           <input type="text" class="grow strat" id="f-strategy" value="${esc(s.strategy)}" placeholder="一句話策略">
           <label>TAG</label>
-          <input type="text" id="f-tag" style="width:120px" value="${esc(s.revTag)}" placeholder="如 8m rev ★">
+          ${tagSelect(s.code, s.revTag, 'tagsel')}
         </div>
       </div>
       <div class="kpis">${kpis}</div>
@@ -858,7 +888,10 @@ function renderDetail() {
   };
   $('#f-rating').onchange = e => { s.rating = e.target.value; s.ratedAt = todayISO(); markDirty(); renderSide(); renderStrategy(); };
   $('#f-strategy').onchange = e => { s.strategy = e.target.value; s.ratedAt = todayISO(); markDirty(); renderStrategy(); };
-  $('#f-tag').oninput = e => { s.revTag = e.target.value; markDirty(); };
+  wrapEl.querySelector('[data-tag]').onchange = e => {
+    if (!onTagChange(e.target)) return;
+    renderDetail(); renderOverview();
+  };
   $('#add-entry').onclick = () => {
     const e = newEntry(curCode);
     s.entries.unshift(e);
