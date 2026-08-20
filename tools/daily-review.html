@@ -36,7 +36,7 @@
   .login-brand h1 { font-family:var(--mono); font-size:17px; font-weight:600; color:#fff; letter-spacing:.02em; }
   .login-sub { font-size:12.5px; color:var(--text-muted); line-height:1.65; margin:10px 0 22px; }
   .login-field { display:flex; gap:8px; }
-  input[type=password], input[type=text], input[type=date], textarea, select {
+  input[type=password], input[type=text], input[type=date], input:not([type]), textarea, select {
     background:var(--surface2); border:1px solid var(--border2); border-radius:7px; color:var(--text);
     padding:9px 11px; font-family:inherit; font-size:13px; outline:none; width:100%;
   }
@@ -150,6 +150,7 @@
   .sh-ctl select { width:auto; min-width:82px; font-family:var(--mono); font-size:12px; }
   .sh-ctl .grow { flex:1; min-width:220px; }
   .sh-ctl label { font-family:var(--mono); font-size:10.5px; color:var(--text-dim); letter-spacing:.05em; }
+  .sh-ctl input.strat { color:var(--accent); font-weight:500; }
 
   .kpis { display:grid; grid-template-columns:repeat(auto-fit,minmax(112px,1fr)); gap:1px; background:var(--border);
           border-bottom:1px solid var(--border); }
@@ -199,7 +200,9 @@
   .panel-bar { display:flex; align-items:center; gap:9px; margin-bottom:11px; flex-wrap:wrap; }
   .panel-bar .grow { flex:1; }
   td .cell-in { background:transparent; border:1px solid transparent; border-radius:5px; padding:4px 7px;
-                font-size:12.5px; width:100%; }
+                font-size:12.5px; width:100%; color:var(--text); }
+  td .cell-in::placeholder { color:var(--text-dim); }
+  td input.cell-in.txt { color:var(--accent); font-weight:500; }
   td .cell-in:hover { border-color:var(--border2); background:var(--surface2); }
   td .cell-in:focus { border-color:var(--accent); background:var(--surface2); }
   td input.cell-in { font-family:var(--mono); text-align:right; }
@@ -629,7 +632,7 @@ function renderStrategy() {
       </select>
     </td>
     <td class="l tight" style="min-width:280px">
-      <input class="cell-in txt" data-f="strategy" data-code="${r.code}"
+      <input type="text" class="cell-in txt" data-f="strategy" data-code="${r.code}"
              value="${esc(r.strategy)}" placeholder="一句話策略">
     </td>
     <td>${nf(r.close)}</td>
@@ -692,7 +695,7 @@ function renderOverview() {
     <td class="l nm" data-jump="${r.code}" style="cursor:pointer">${esc(r.name)}</td>
     <td>${nf(r.close)}</td>
     <td class="${cls(r.chgPct)}">${pctTxt(r.chgPct)}</td>
-    <td class="tight"><input class="cell-in" data-pe="${r.code}" value="${r.pe == null ? '' : r.pe}"
+    <td class="tight"><input type="text" class="cell-in" data-pe="${r.code}" value="${r.pe == null ? '' : r.pe}"
         placeholder="—" title="${r.peAt ? '更新於 ' + r.peAt : '尚未填寫'}"></td>
     <td class="${cls(r.hist)}">${nf(r.hist)}</td>
     <td class="${cls(r.histChg)}">${r.histChg == null ? '—' : sgn(r.histChg, 2)}</td>
@@ -828,7 +831,7 @@ function renderDetail() {
             ${['','OW','N','UW'].map(r => `<option value="${r}" ${s.rating===r?'selected':''}>${r||'—'}</option>`).join('')}
           </select>
           <label>STRATEGY</label>
-          <input type="text" class="grow" id="f-strategy" value="${esc(s.strategy)}" placeholder="一句話策略">
+          <input type="text" class="grow strat" id="f-strategy" value="${esc(s.strategy)}" placeholder="一句話策略">
           <label>TAG</label>
           <input type="text" id="f-tag" style="width:120px" value="${esc(s.revTag)}" placeholder="如 8m rev ★">
         </div>
@@ -880,7 +883,7 @@ function grid4(e, k, isEdit) {
     return Number.isInteger(v) ? ni(v) : nf(v);
   };
   const head = `<tr><th class="rl"></th>${labels.map((l, i) => isEdit
-      ? `<th><input class="lab" data-k="${k}" data-r="labels" data-i="${i}" value="${esc(l)}"></th>`
+      ? `<th><input type="text" class="lab" data-k="${k}" data-r="labels" data-i="${i}" value="${esc(l)}"></th>`
       : `<th>${esc(l)}</th>`).join('')}</tr>`;
   const body = rows.map(r => `<tr><td class="rl">${ROW_NAME[r]}</td>${labels.map((_, i) => {
       const v = (sec[r] || [])[i];
