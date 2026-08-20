@@ -350,13 +350,13 @@ def build_chips(code, csv_rows, chip, sbl=None):
     d_margin = (margin_lots or 0) - (num(cur["融資融券_融資_前日餘額"]) or 0)
 
     ratio = lambda lots: (lots / issued_lots) if (lots is not None and issued_lots) else None
+    # I 段只放法人動向；融資/融券等信用交易一律歸 S 段
     I = {
-        "labels": ["QFII", "QDII", "Trader", "融資"],
-        "value": [r(foreign_lots, 0), r(trust_lots, 0), r(dealer_lots, 0), r(margin_lots, 0)],
-        "change": [r(d_foreign, 0), r(d_trust, 0), r(d_dealer, 0), r(d_margin, 0)],
+        "labels": ["QFII", "QDII", "Trader"],
+        "value": [r(foreign_lots, 0), r(trust_lots, 0), r(dealer_lots, 0)],
+        "change": [r(d_foreign, 0), r(d_trust, 0), r(d_dealer, 0)],
         "ratio": [r((num(cur["外資及陸資持股比率(%)"]) or 0) / 100, 4),
-                  r(ratio(trust_lots), 4), r(ratio(dealer_lots), 4),
-                  r((num(cur["融資占發行股數比率(%)"]) or 0) / 100, 4)],
+                  r(ratio(trust_lots), 4), r(ratio(dealer_lots), 4)],
     }
 
     quota = num(cur["融資融券_融資_次一營業日限額"])
@@ -373,10 +373,13 @@ def build_chips(code, csv_rows, chip, sbl=None):
         pc_prev = (sp / mp * 100) if (sp is not None and mp) else None
 
     ls_bal, ls_chg = sbl if sbl else (None, None)
+    # 融資使用率 UR = 融資餘額 / 次一營業日限額（限額為發行股數的 25%），
+    # 與「融資占發行股數比率」是同一件事的兩種刻度（UR = 占股本% × 4），這裡放前者。
     S = {
-        "labels": ["融資UR", "融券", "P/C", "LS"],
-        "value": [r(ur, 4), r(short_lots, 0), r(pc, 2), ls_bal],
-        "change": [r(ur - ur_prev, 4) if (ur is not None and ur_prev is not None) else None,
+        "labels": ["融資", "融資UR", "融券", "P/C", "LS"],
+        "value": [r(margin_lots, 0), r(ur, 4), r(short_lots, 0), r(pc, 2), ls_bal],
+        "change": [r(d_margin, 0),
+                   r(ur - ur_prev, 4) if (ur is not None and ur_prev is not None) else None,
                    r(short_lots - short_prev, 0) if (short_lots is not None and short_prev is not None) else None,
                    r(pc - pc_prev, 2) if (pc is not None and pc_prev is not None) else None,
                    ls_chg],
@@ -465,7 +468,7 @@ def main():
           f"(股價 {doc['priceDate']} / 籌碼 {doc['chipDate']})  {OUT_PATH.stat().st_size // 1024} KB")
     if miss:
         print(f"⚠ 無籌碼資料: {', '.join(miss)}（CSV 缺該代號）")
-    no_ls = [c for c, v in stocks.items() if (v["credit"] or {}).get("value", [None]*4)[3] is None]
+    no_ls = [c for c, v in stocks.items() if (v["credit"] or {}).get("value", [None] * 5)[4] is None]
     if no_ls:
         print(f"· 無借券餘額: {', '.join(no_ls)}")
 

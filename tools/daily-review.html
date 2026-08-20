@@ -171,7 +171,7 @@
   .sec .txt.empty { color:var(--text-dim); font-style:italic; }
   .sec textarea { min-height:74px; line-height:1.7; resize:vertical; }
   .grid4 { margin-top:9px; border:1px solid var(--border); border-radius:7px; overflow-x:auto; }
-  .grid4 table { min-width:430px; }
+  .grid4 table { min-width:480px; }
   .grid4 table { font-size:11.5px; }
   .grid4 th, .grid4 td { padding:5px 9px; text-align:right; }
   .grid4 th { position:static; cursor:default; font-size:9.5px; }
@@ -383,7 +383,7 @@ const METRICS_PATH = '../data/review-metrics.json';
 const LS_KEY = 'daily_review_v1';
 const SECS = ['T','I','S','F','O'];
 const SEC_NAME = { T:'技術面 TECHNICAL', I:'籌碼面 INSTITUTIONAL', S:'信用交易 SHORT / MARGIN', F:'基本面 FUNDAMENTAL', O:'總結 OVERALL' };
-const DEF_LABELS = { T:['MACD柱','K','D','K−D'], I:['QFII','QDII','Trader','融資'], S:['融資UR','融券','P/C','LS'] };
+const DEF_LABELS = { T:['MACD柱','K','D','K−D'], I:['QFII','QDII','Trader'], S:['融資','融資UR','融券','P/C','LS'] };
 const ROW_KEYS = { T:['value'], I:['value','change','ratio'], S:['value','change'] };
 const ROW_NAME = { value:'數值', change:'增減', ratio:'持股%' };
 
@@ -420,6 +420,13 @@ function spanNum(v, d = 2, suffix = '') {
 
 /* ─────────── DATA ACCESS ─────────── */
 function M(code) { return (METRICS && METRICS.stocks && METRICS.stocks[code]) || null; }
+/* 依欄位名取信用交易數值，欄位順序日後調整也不會錯位 */
+function cred(m, label, row) {
+  const c = m && m.credit;
+  if (!c || !c.labels) return null;
+  const i = c.labels.indexOf(label);
+  return i < 0 ? null : ((c[row || 'value'] || [])[i]);
+}
 function stocksArr(includeArchived) {
   return Object.values(state.stocks)
     .filter(s => includeArchived || s.held !== false)
@@ -463,7 +470,7 @@ function draftT(m) {
 }
 function draftI(m) {
   const c = m && m.chips; if (!c) return '';
-  const nm = ['外資','投信','自營','融資'];
+  const nm = ['外資','投信','自營'];
   const L = nm.map((n, i) => {
     const v = c.value[i], ch = c.change[i], rt = c.ratio[i];
     return `${n} ${ni(v)} 張（${sgn(ch)}）${rt != null ? ' ' + (rt * 100).toFixed(2) + '%' : ''}`;
@@ -472,21 +479,21 @@ function draftI(m) {
   return L.join('\n');
 }
 function draftS(m) {
-  const s = m && m.credit; if (!s) return '';
+  if (!m || !m.credit) return '';
+  const v = l => cred(m, l), c = l => cred(m, l, 'change');
   const L = [];
-  if (s.value[0] != null) L.push(`融資 UR=${(s.value[0]*100).toFixed(2)}%（${sgn(s.change[0]*100, 2)}pp）`);
-  if (s.value[1] != null) L.push(`融券 ${ni(s.value[1])} 張（${sgn(s.change[1])}）`);
-  if (s.value[2] != null) L.push(`券資比 P/C=${nf(s.value[2])}%（${sgn(s.change[2], 2)}）`);
-  L.push(s.value[3] != null
-    ? `借券 LS=${ni(s.value[3])} 張（${sgn(s.change[3])}）`
-    : 'LS（借券餘額）：');
+  if (v('融資') != null)
+    L.push(`融資 ${ni(v('融資'))} 張（${sgn(c('融資'))}），UR=${(v('融資UR')*100).toFixed(2)}%（${sgn(c('融資UR')*100, 2)}pp）`);
+  if (v('融券') != null) L.push(`融券 ${ni(v('融券'))} 張（${sgn(c('融券'))}）`);
+  if (v('P/C') != null) L.push(`券資比 P/C=${nf(v('P/C'))}%（${sgn(c('P/C'), 2)}）`);
+  L.push(v('LS') != null ? `借券 LS=${ni(v('LS'))} 張（${sgn(c('LS'))}）` : 'LS（借券餘額）：');
   return L.join('\n');
 }
 
 /* ─────────── 新增 entry ─────────── */
 function blankSection(k, m) {
   const o = { text:'' };
-  if (DEF_LABELS[k]) { o.labels = DEF_LABELS[k].slice(); ROW_KEYS[k].forEach(r => o[r] = [null,null,null,null]); }
+  if (DEF_LABELS[k]) { o.labels = DEF_LABELS[k].slice(); ROW_KEYS[k].forEach(r => o[r] = o.labels.map(() => null)); }
   if (!m) return o;
   if (k === 'T' && m.tech) {
     o.text = draftT(m);
@@ -501,6 +508,7 @@ function blankSection(k, m) {
     o.text = draftS(m); o.labels = m.credit.labels.slice();
     o.value = m.credit.value.slice(); o.change = m.credit.change.slice();
   }
+  if (k === 'I' && m.chips) o.ratio = m.chips.ratio.slice();
   return o;
 }
 function newEntry(code, date) {
@@ -637,14 +645,14 @@ const OV_COLS = [
   { k:'pc',      t:'P/C %', title:'券資比 = 融券餘額 / 融資餘額' },
 ];
 function ovRow(s) {
-  const b = baseRow(s), t = b._t, cr = (b._m && b._m.credit) || { value:[] };
+  const b = baseRow(s), t = b._t;
   const hist = t.hist, hp = t.histPrev;
   return Object.assign(b, {
     pe: s.pe == null ? null : s.pe, peAt: s.peAt || '',
     hist, histChg: (hist != null && hp != null) ? hist - hp : null,
     trend: t.trend || '', axis: t.position || '', cross: t.cross || '',
     k: t.k, d: t.d, kd: (t.k != null && t.d != null) ? t.k - t.d : null,
-    kdCross: t.kdCross || '', pc: cr.value[2],
+    kdCross: t.kdCross || '', pc: cred(b._m, 'P/C'),
   });
 }
 function renderOverview() {
@@ -743,7 +751,6 @@ function renderDetail() {
   const s = state.stocks[curCode], m = M(curCode), t = (m && m.tech) || {};
   const histChg = (t.hist != null && t.histPrev != null) ? t.hist - t.histPrev : null;
   const kd = (t.k != null && t.d != null) ? t.k - t.d : null;
-  const cr = (m && m.credit) || { value:[] };
   const big = m && m.big;
   const kpis = [
     kpi('MACD 柱',
@@ -757,8 +764,10 @@ function renderDetail() {
         ].filter(Boolean).join(' · ')),
     kpi('YTD 高', nf(t.ytdHigh), t.ytdHighDate ? `${t.ytdHighDate} · ${pctTxt(t.fromHigh)}` : ''),
     kpi('YTD 低', nf(t.ytdLow), t.ytdLowDate ? `${t.ytdLowDate} · ${pctTxt(t.fromLow)}` : ''),
-    kpi('融資 UR', cr.value[0] != null ? (cr.value[0] * 100).toFixed(2) + '%' : '—', ''),
-    kpi('券資比 P/C', nf(cr.value[2]), ''),
+    kpi('融資', ni(cred(m, '融資')),
+        cred(m, '融資UR') != null
+          ? `UR ${(cred(m, '融資UR') * 100).toFixed(2)}% · ${sgn(cred(m, '融資', 'change'))} 張` : ''),
+    kpi('券資比 P/C', nf(cred(m, 'P/C')), cred(m, 'LS') != null ? `借券 ${ni(cred(m, 'LS'))} 張` : ''),
     kpi('千張大戶', big ? nf(big.pct) + '%' : '—',
         big ? [big.streak ? `<span class="${big.dir === '增' ? 'pos' : 'neg'}">連 ${big.streak} 週${big.dir}</span>` : '持平',
                big.chg == null ? null : `${sgn(big.chg, 2)}pp`,
