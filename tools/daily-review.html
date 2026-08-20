@@ -73,6 +73,8 @@
            border:1px solid var(--border); border-radius:5px; padding:4px 8px; }
   .stamp b { color:var(--text-muted); font-weight:500; }
   .dirty { color:var(--n) !important; border-color:var(--n) !important; }
+  @keyframes pulse { 0%,100% { box-shadow:0 0 0 0 var(--glow); } 50% { box-shadow:0 0 0 5px transparent; } }
+  #btn-export.primary { animation:pulse 1.8s ease-in-out infinite; }
 
   .tabs { display:flex; gap:5px; margin-bottom:20px; border-bottom:1px solid var(--border); }
   .tab { background:none; border:none; border-bottom:2px solid transparent; color:var(--text-muted);
@@ -381,6 +383,7 @@ async function decryptPayload(blob, password) {
 const ENC_PATH = '../data/review.enc';
 const METRICS_PATH = '../data/review-metrics.json';
 const LS_KEY = 'daily_review_v1';
+const LS_PREV = 'daily_review_v1_prev';   // 覆蓋前的上一版草稿，救命用
 const SECS = ['T','I','S','F','O'];
 const SEC_NAME = { T:'技術面 TECHNICAL', I:'籌碼面 INSTITUTIONAL', S:'信用交易 SHORT / MARGIN', F:'基本面 FUNDAMENTAL', O:'總結 OVERALL' };
 const DEF_LABELS = { T:['MACD柱','K','D','K−D'], I:['QFII','QDII','Trader'], S:['融資','融資UR','融券','P/C','LS'] };
@@ -438,15 +441,31 @@ function grp(s) { return s.group || s.portfolio || null; }
 function grpName(s) { return s.held === false ? '已出場' : (PORT_NAME[grp(s)] || '—'); }
 function lastEntry(s) { return s.entries && s.entries.length ? s.entries[0] : null; }
 
+function readDraft() {
+  try { return JSON.parse(localStorage.getItem(LS_KEY) || 'null'); } catch (e) { return null; }
+}
+function countEntries(s) {
+  return Object.values((s && s.stocks) || {}).reduce((a, x) => a + ((x.entries || []).length), 0);
+}
+function saveDraft() {
+  try {
+    const old = localStorage.getItem(LS_KEY);
+    if (old) localStorage.setItem(LS_PREV, old);      // 永遠留一份上一版
+    localStorage.setItem(LS_KEY, JSON.stringify(state));
+  } catch (e) { console.warn('localStorage 寫入失敗', e); }
+}
+
 function markDirty() {
   dirty = true;
   const s = $('#stamp-save'); s.textContent = '未儲存 · 記得下載加密檔'; s.classList.add('dirty');
   state.updated = new Date().toISOString();
-  try { localStorage.setItem(LS_KEY, JSON.stringify(state)); } catch (e) { console.warn(e); }
+  saveDraft();
+  $('#btn-export').classList.add('primary');
 }
 function markClean() {
   dirty = false;
   const s = $('#stamp-save'); s.textContent = '已儲存'; s.classList.remove('dirty');
+  $('#btn-export').classList.remove('primary');
 }
 
 /* ─────────── 自動草稿（把當日數據寫成筆記體例） ─────────── */
@@ -1064,6 +1083,7 @@ async function exportEnc() {
   state.updated = new Date().toISOString();
   const bin = await encryptPayload(JSON.stringify(state), password);
   download('review.enc', new Blob([bin], { type:'application/octet-stream' }));
+  saveDraft();
   markClean();
   toast('已下載 review.enc — 覆蓋到 data/ 後 git push');
 }
@@ -1094,7 +1114,20 @@ function normalize(s) {
   return s;
 }
 function boot(loaded) {
-  state = normalize(loaded);
+  // 本機草稿比加密檔新 → 代表上次編輯後沒有下載，先問要不要復原
+  const draft = readDraft();
+  let restored = false;
+  if (draft && draft.updated && (!loaded || !loaded.updated || draft.updated > loaded.updated)) {
+    const when = new Date(draft.updated).toLocaleString('zh-TW', { hour12:false });
+    restored = confirm(
+      '偵測到這台電腦上有「尚未下載成加密檔」的修改。\n\n'
+      + `　最後編輯：${when}\n`
+      + `　本機草稿：${countEntries(draft)} 筆 review\n`
+      + `　加密檔　：${countEntries(loaded)} 筆 review\n\n`
+      + '要復原本機的修改嗎？\n'
+      + '（選「取消」則使用加密檔的版本；本機草稿仍會保留一份備份）');
+  }
+  state = normalize(restored ? draft : loaded);
   $('#login').classList.add('hidden');
   $('#app').classList.add('active');
   const st = $('#stamp-data');
@@ -1104,8 +1137,15 @@ function boot(loaded) {
   const noted = stocksArr(true).filter(s => s.entries.length);
   curCode = (noted[0] || stocksArr()[0] || {}).code || null;
   renderStrategy(); renderOverview(); renderSide(); renderDetail();
-  try { localStorage.setItem(LS_KEY, JSON.stringify(state)); } catch (e) {}
-  markClean();
+  saveDraft();
+  if (restored) {
+    dirty = true;
+    const st2 = $('#stamp-save'); st2.textContent = '未儲存 · 記得下載加密檔'; st2.classList.add('dirty');
+    $('#btn-export').classList.add('primary');
+    toast('已復原本機未下載的修改 — 請按「下載加密檔」保存');
+  } else {
+    markClean();
+  }
 }
 
 async function loadMetrics() {
@@ -1220,7 +1260,9 @@ $('#mk-add').onclick = () => {
   state.market.notes.sort((a, b) => b.date.localeCompare(a.date));
   markDirty(); renderMarket();
 };
-window.addEventListener('beforeunload', e => { if (dirty) { e.preventDefault(); e.returnValue = ''; } });
+window.addEventListener('beforeunload', e => {
+  if (dirty) { e.preventDefault(); e.returnValue = '還有修改沒有下載成加密檔，離開後需要在下次解鎖時復原。'; }
+});
 
 init();
 })();
