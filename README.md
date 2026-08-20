@@ -199,6 +199,23 @@ T 的第一欄與 dashboard 同樣是**柱狀值**（DIF − 慢線），不是 
 JSON.parse(localStorage.getItem('daily_review_v1_prev'))
 ```
 
+### 一行存檔
+
+按完「下載加密檔」後，剩下的搬檔 + commit + push 交給：
+
+```bash
+cd stock-tools && python3 tools/save_review.py
+```
+
+會自動抓 `~/Downloads` 最新的 `review*.enc`（含瀏覽器重名產生的 `review (1).enc`、
+`（NEW）review.enc`），做完健檢後覆蓋 `data/review.enc`、commit、`pull --rebase --autostash`、
+push，最後清掉下載檔。健檢會擋下兩種常見意外：
+
+- **檔案認錯** —— 開頭不是 `RVEW` 就拒絕（`portfolio.html` 的 `trades.enc` 是 `PORT`）
+- **空白檔覆蓋** —— 新檔不到現有的一半就中止（完整約 70 KB，沒匯入筆記的空白檔約 5 KB）
+
+其他旗標：`--keep` 保留下載檔、`--no-push` 只 commit、`--yes` 不詢問、`--force` 略過大小保護。
+
 ---
 
 ## 修正股價 xlsx 的分頁命名
