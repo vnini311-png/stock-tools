@@ -448,11 +448,50 @@
 
 </div>
 
+<!-- 2027/28 Forward Estimates -->
+<div class="section">
+  <div class="section-head">
+    <div class="section-title">2027 / 2028 預估 EPS · Forward PE</div>
+    <div class="section-sub" id="fwd-sub">FORWARD ESTIMATES · 現價載入中…</div>
+  </div>
+  <table class="broker-table">
+    <thead>
+      <tr>
+        <th style="width:24%">券商</th>
+        <th style="width:14%">27年 EPS</th>
+        <th style="width:14%">27 Fwd PE</th>
+        <th style="width:14%">28年 EPS</th>
+        <th style="width:14%">28 Fwd PE</th>
+        <th style="width:20%">報告日期</th>
+      </tr>
+    </thead>
+    <tbody id="fwd-tbody"></tbody>
+  </table>
+  <div class="stat-row">
+    <div class="stat">
+      <span class="stat-lbl">27年 EPS 平均</span>
+      <span class="stat-val" id="fwd-27-avg">—</span>
+    </div>
+    <div class="stat">
+      <span class="stat-lbl">27 Fwd PE (共識)</span>
+      <span class="stat-val" id="fwd-27-pe">—</span>
+    </div>
+    <div class="stat">
+      <span class="stat-lbl">28年 EPS 平均</span>
+      <span class="stat-val" id="fwd-28-avg">—</span>
+    </div>
+    <div class="stat">
+      <span class="stat-lbl">28 Fwd PE (共識)</span>
+      <span class="stat-val" id="fwd-28-pe">—</span>
+    </div>
+  </div>
+</div>
+
 <!-- Quarterly EPS & Margins -->
 <div class="section">
   <div class="section-head">
     <div class="section-title">季度 EPS 與利潤率走勢</div>
-    <div class="section-sub">1Q23 — 1Q26 · QUARTERLY</div>
+    <div class="section-sub">1Q23 — 2Q26 · QUARTERLY</div>
   </div>
   <div class="chart-legend">
     <div class="chart-legend-item"><div class="chart-legend-dot bar" style="background:var(--c-eps)"></div>單季 EPS (元)</div>
@@ -477,7 +516,7 @@
 </div>
 
 <div class="footer-note">
-  完成率 = 已公布單季 EPS 累計 ÷ 券商共識年度 EPS。
+  完成率 = 已公布單季 EPS 累計 ÷ 券商共識年度 EPS。Forward PE = 現價 ÷ 預估 EPS（現價取自即時報價，盤後為最近收盤）。
 </div>
 
 <script>
@@ -488,22 +527,22 @@ let FORECASTS = {
     "name": "台達電",
     "year": 2026,
     "brokers": [
-      { "broker": "凱基投顧", "eps": 40.57, "revenue": 775794, "target_price": 2505, "rating": "增加持股 (OW)", "report_date": "2026-07-30" },
-      { "broker": "Morgan Stanley", "eps": 37.12, "revenue": 763100, "target_price": 1976, "rating": "Overweight (Top Pick)", "report_date": "2026-04-29" },
-      { "broker": "群益投顧", "eps": 38.77, "revenue": 765506, "target_price": 2800, "rating": "Buy", "report_date": "2026-05-04" },
-      { "broker": "元大投顧", "eps": 43.68, "revenue": 826355, "target_price": 2240, "rating": "買進 (Buy)", "report_date": "2026-07-31" },
-      { "broker": "", "eps": null, "revenue": null, "target_price": null, "rating": "", "report_date": "" }
+      { "broker": "凱基投顧", "eps": 40.57, "eps27": 66.29, "eps28": 100.71, "revenue": 775794, "target_price": 2505, "rating": "增加持股 (OW)", "report_date": "2026-07-30" },
+      { "broker": "Morgan Stanley", "eps": 37.12, "eps27": null, "eps28": null, "revenue": 763100, "target_price": 1976, "rating": "Overweight (Top Pick)", "report_date": "2026-04-29" },
+      { "broker": "群益投顧", "eps": 38.77, "eps27": null, "eps28": null, "revenue": 765506, "target_price": 2800, "rating": "Buy", "report_date": "2026-05-04" },
+      { "broker": "元大投顧", "eps": 43.68, "eps27": 79.56, "eps28": null, "revenue": 826355, "target_price": 2240, "rating": "買進 (Buy)", "report_date": "2026-07-31" },
+      { "broker": "", "eps": null, "eps27": null, "eps28": null, "revenue": null, "target_price": null, "rating": "", "report_date": "" }
     ]
   },
   "2330": {
     "name": "台積電",
     "year": 2026,
     "brokers": [
-      { "broker": "元大投顧", "eps": 99.67, "revenue": 5260824, "target_price": 2600, "rating": "買進", "report_date": "2026-04-16" },
-      { "broker": "凱基投顧", "eps": 102.74, "revenue": 5278986, "target_price": 2600, "rating": "增加持股", "report_date": "2026-04-16" },
+      { "broker": "元大投顧", "eps": 99.67, "eps27": null, "eps28": null, "revenue": 5260824, "target_price": 2600, "rating": "買進", "report_date": "2026-04-16" },
+      { "broker": "凱基投顧", "eps": 102.74, "eps27": null, "eps28": null, "revenue": 5278986, "target_price": 2600, "rating": "增加持股", "report_date": "2026-04-16" },
       {
         "broker": "",
-        "eps": null,
+        "eps": null, "eps27": null, "eps28": null,
         "revenue": null,
         "target_price": null,
         "rating": "",
@@ -511,7 +550,7 @@ let FORECASTS = {
       },
       {
         "broker": "",
-        "eps": null,
+        "eps": null, "eps27": null, "eps28": null,
         "revenue": null,
         "target_price": null,
         "rating": "",
@@ -519,7 +558,7 @@ let FORECASTS = {
       },
       {
         "broker": "",
-        "eps": null,
+        "eps": null, "eps27": null, "eps28": null,
         "revenue": null,
         "target_price": null,
         "rating": "",
@@ -533,7 +572,7 @@ let FORECASTS = {
     "brokers": [
       {
         "broker": "",
-        "eps": null,
+        "eps": null, "eps27": null, "eps28": null,
         "revenue": null,
         "target_price": null,
         "rating": "",
@@ -541,7 +580,7 @@ let FORECASTS = {
       },
       {
         "broker": "",
-        "eps": null,
+        "eps": null, "eps27": null, "eps28": null,
         "revenue": null,
         "target_price": null,
         "rating": "",
@@ -549,7 +588,7 @@ let FORECASTS = {
       },
       {
         "broker": "",
-        "eps": null,
+        "eps": null, "eps27": null, "eps28": null,
         "revenue": null,
         "target_price": null,
         "rating": "",
@@ -557,7 +596,7 @@ let FORECASTS = {
       },
       {
         "broker": "",
-        "eps": null,
+        "eps": null, "eps27": null, "eps28": null,
         "revenue": null,
         "target_price": null,
         "rating": "",
@@ -565,7 +604,7 @@ let FORECASTS = {
       },
       {
         "broker": "",
-        "eps": null,
+        "eps": null, "eps27": null, "eps28": null,
         "revenue": null,
         "target_price": null,
         "rating": "",
@@ -579,7 +618,7 @@ let FORECASTS = {
     "brokers": [
       {
         "broker": "",
-        "eps": null,
+        "eps": null, "eps27": null, "eps28": null,
         "revenue": null,
         "target_price": null,
         "rating": "",
@@ -587,7 +626,7 @@ let FORECASTS = {
       },
       {
         "broker": "",
-        "eps": null,
+        "eps": null, "eps27": null, "eps28": null,
         "revenue": null,
         "target_price": null,
         "rating": "",
@@ -595,7 +634,7 @@ let FORECASTS = {
       },
       {
         "broker": "",
-        "eps": null,
+        "eps": null, "eps27": null, "eps28": null,
         "revenue": null,
         "target_price": null,
         "rating": "",
@@ -603,7 +642,7 @@ let FORECASTS = {
       },
       {
         "broker": "",
-        "eps": null,
+        "eps": null, "eps27": null, "eps28": null,
         "revenue": null,
         "target_price": null,
         "rating": "",
@@ -611,7 +650,7 @@ let FORECASTS = {
       },
       {
         "broker": "",
-        "eps": null,
+        "eps": null, "eps27": null, "eps28": null,
         "revenue": null,
         "target_price": null,
         "rating": "",
@@ -625,7 +664,7 @@ let FORECASTS = {
     "brokers": [
       {
         "broker": "",
-        "eps": null,
+        "eps": null, "eps27": null, "eps28": null,
         "revenue": null,
         "target_price": null,
         "rating": "",
@@ -633,7 +672,7 @@ let FORECASTS = {
       },
       {
         "broker": "",
-        "eps": null,
+        "eps": null, "eps27": null, "eps28": null,
         "revenue": null,
         "target_price": null,
         "rating": "",
@@ -641,7 +680,7 @@ let FORECASTS = {
       },
       {
         "broker": "",
-        "eps": null,
+        "eps": null, "eps27": null, "eps28": null,
         "revenue": null,
         "target_price": null,
         "rating": "",
@@ -649,7 +688,7 @@ let FORECASTS = {
       },
       {
         "broker": "",
-        "eps": null,
+        "eps": null, "eps27": null, "eps28": null,
         "revenue": null,
         "target_price": null,
         "rating": "",
@@ -657,7 +696,7 @@ let FORECASTS = {
       },
       {
         "broker": "",
-        "eps": null,
+        "eps": null, "eps27": null, "eps28": null,
         "revenue": null,
         "target_price": null,
         "rating": "",
@@ -671,7 +710,7 @@ let FORECASTS = {
     "brokers": [
       {
         "broker": "",
-        "eps": null,
+        "eps": null, "eps27": null, "eps28": null,
         "revenue": null,
         "target_price": null,
         "rating": "",
@@ -679,7 +718,7 @@ let FORECASTS = {
       },
       {
         "broker": "",
-        "eps": null,
+        "eps": null, "eps27": null, "eps28": null,
         "revenue": null,
         "target_price": null,
         "rating": "",
@@ -687,7 +726,7 @@ let FORECASTS = {
       },
       {
         "broker": "",
-        "eps": null,
+        "eps": null, "eps27": null, "eps28": null,
         "revenue": null,
         "target_price": null,
         "rating": "",
@@ -695,7 +734,7 @@ let FORECASTS = {
       },
       {
         "broker": "",
-        "eps": null,
+        "eps": null, "eps27": null, "eps28": null,
         "revenue": null,
         "target_price": null,
         "rating": "",
@@ -703,7 +742,7 @@ let FORECASTS = {
       },
       {
         "broker": "",
-        "eps": null,
+        "eps": null, "eps27": null, "eps28": null,
         "revenue": null,
         "target_price": null,
         "rating": "",
@@ -717,7 +756,7 @@ let FORECASTS = {
     "brokers": [
       {
         "broker": "",
-        "eps": null,
+        "eps": null, "eps27": null, "eps28": null,
         "revenue": null,
         "target_price": null,
         "rating": "",
@@ -725,7 +764,7 @@ let FORECASTS = {
       },
       {
         "broker": "",
-        "eps": null,
+        "eps": null, "eps27": null, "eps28": null,
         "revenue": null,
         "target_price": null,
         "rating": "",
@@ -733,7 +772,7 @@ let FORECASTS = {
       },
       {
         "broker": "",
-        "eps": null,
+        "eps": null, "eps27": null, "eps28": null,
         "revenue": null,
         "target_price": null,
         "rating": "",
@@ -741,7 +780,7 @@ let FORECASTS = {
       },
       {
         "broker": "",
-        "eps": null,
+        "eps": null, "eps27": null, "eps28": null,
         "revenue": null,
         "target_price": null,
         "rating": "",
@@ -749,7 +788,7 @@ let FORECASTS = {
       },
       {
         "broker": "",
-        "eps": null,
+        "eps": null, "eps27": null, "eps28": null,
         "revenue": null,
         "target_price": null,
         "rating": "",
@@ -763,7 +802,7 @@ let FORECASTS = {
     "brokers": [
       {
         "broker": "",
-        "eps": null,
+        "eps": null, "eps27": null, "eps28": null,
         "revenue": null,
         "target_price": null,
         "rating": "",
@@ -771,7 +810,7 @@ let FORECASTS = {
       },
       {
         "broker": "",
-        "eps": null,
+        "eps": null, "eps27": null, "eps28": null,
         "revenue": null,
         "target_price": null,
         "rating": "",
@@ -779,7 +818,7 @@ let FORECASTS = {
       },
       {
         "broker": "",
-        "eps": null,
+        "eps": null, "eps27": null, "eps28": null,
         "revenue": null,
         "target_price": null,
         "rating": "",
@@ -787,7 +826,7 @@ let FORECASTS = {
       },
       {
         "broker": "",
-        "eps": null,
+        "eps": null, "eps27": null, "eps28": null,
         "revenue": null,
         "target_price": null,
         "rating": "",
@@ -795,7 +834,7 @@ let FORECASTS = {
       },
       {
         "broker": "",
-        "eps": null,
+        "eps": null, "eps27": null, "eps28": null,
         "revenue": null,
         "target_price": null,
         "rating": "",
@@ -809,7 +848,7 @@ let FORECASTS = {
     "brokers": [
       {
         "broker": "",
-        "eps": null,
+        "eps": null, "eps27": null, "eps28": null,
         "revenue": null,
         "target_price": null,
         "rating": "",
@@ -817,7 +856,7 @@ let FORECASTS = {
       },
       {
         "broker": "",
-        "eps": null,
+        "eps": null, "eps27": null, "eps28": null,
         "revenue": null,
         "target_price": null,
         "rating": "",
@@ -825,7 +864,7 @@ let FORECASTS = {
       },
       {
         "broker": "",
-        "eps": null,
+        "eps": null, "eps27": null, "eps28": null,
         "revenue": null,
         "target_price": null,
         "rating": "",
@@ -833,7 +872,7 @@ let FORECASTS = {
       },
       {
         "broker": "",
-        "eps": null,
+        "eps": null, "eps27": null, "eps28": null,
         "revenue": null,
         "target_price": null,
         "rating": "",
@@ -841,7 +880,7 @@ let FORECASTS = {
       },
       {
         "broker": "",
-        "eps": null,
+        "eps": null, "eps27": null, "eps28": null,
         "revenue": null,
         "target_price": null,
         "rating": "",
@@ -855,7 +894,7 @@ let FORECASTS = {
     "brokers": [
       {
         "broker": "",
-        "eps": null,
+        "eps": null, "eps27": null, "eps28": null,
         "revenue": null,
         "target_price": null,
         "rating": "",
@@ -863,7 +902,7 @@ let FORECASTS = {
       },
       {
         "broker": "",
-        "eps": null,
+        "eps": null, "eps27": null, "eps28": null,
         "revenue": null,
         "target_price": null,
         "rating": "",
@@ -871,7 +910,7 @@ let FORECASTS = {
       },
       {
         "broker": "",
-        "eps": null,
+        "eps": null, "eps27": null, "eps28": null,
         "revenue": null,
         "target_price": null,
         "rating": "",
@@ -879,7 +918,7 @@ let FORECASTS = {
       },
       {
         "broker": "",
-        "eps": null,
+        "eps": null, "eps27": null, "eps28": null,
         "revenue": null,
         "target_price": null,
         "rating": "",
@@ -887,7 +926,7 @@ let FORECASTS = {
       },
       {
         "broker": "",
-        "eps": null,
+        "eps": null, "eps27": null, "eps28": null,
         "revenue": null,
         "target_price": null,
         "rating": "",
@@ -901,7 +940,7 @@ let FORECASTS = {
     "brokers": [
       {
         "broker": "",
-        "eps": null,
+        "eps": null, "eps27": null, "eps28": null,
         "revenue": null,
         "target_price": null,
         "rating": "",
@@ -909,7 +948,7 @@ let FORECASTS = {
       },
       {
         "broker": "",
-        "eps": null,
+        "eps": null, "eps27": null, "eps28": null,
         "revenue": null,
         "target_price": null,
         "rating": "",
@@ -917,7 +956,7 @@ let FORECASTS = {
       },
       {
         "broker": "",
-        "eps": null,
+        "eps": null, "eps27": null, "eps28": null,
         "revenue": null,
         "target_price": null,
         "rating": "",
@@ -925,7 +964,7 @@ let FORECASTS = {
       },
       {
         "broker": "",
-        "eps": null,
+        "eps": null, "eps27": null, "eps28": null,
         "revenue": null,
         "target_price": null,
         "rating": "",
@@ -933,7 +972,7 @@ let FORECASTS = {
       },
       {
         "broker": "",
-        "eps": null,
+        "eps": null, "eps27": null, "eps28": null,
         "revenue": null,
         "target_price": null,
         "rating": "",
@@ -947,7 +986,7 @@ let FORECASTS = {
     "brokers": [
       {
         "broker": "",
-        "eps": null,
+        "eps": null, "eps27": null, "eps28": null,
         "revenue": null,
         "target_price": null,
         "rating": "",
@@ -955,7 +994,7 @@ let FORECASTS = {
       },
       {
         "broker": "",
-        "eps": null,
+        "eps": null, "eps27": null, "eps28": null,
         "revenue": null,
         "target_price": null,
         "rating": "",
@@ -963,7 +1002,7 @@ let FORECASTS = {
       },
       {
         "broker": "",
-        "eps": null,
+        "eps": null, "eps27": null, "eps28": null,
         "revenue": null,
         "target_price": null,
         "rating": "",
@@ -971,7 +1010,7 @@ let FORECASTS = {
       },
       {
         "broker": "",
-        "eps": null,
+        "eps": null, "eps27": null, "eps28": null,
         "revenue": null,
         "target_price": null,
         "rating": "",
@@ -979,7 +1018,7 @@ let FORECASTS = {
       },
       {
         "broker": "",
-        "eps": null,
+        "eps": null, "eps27": null, "eps28": null,
         "revenue": null,
         "target_price": null,
         "rating": "",
@@ -993,7 +1032,7 @@ let FORECASTS = {
     "brokers": [
       {
         "broker": "",
-        "eps": null,
+        "eps": null, "eps27": null, "eps28": null,
         "revenue": null,
         "target_price": null,
         "rating": "",
@@ -1001,7 +1040,7 @@ let FORECASTS = {
       },
       {
         "broker": "",
-        "eps": null,
+        "eps": null, "eps27": null, "eps28": null,
         "revenue": null,
         "target_price": null,
         "rating": "",
@@ -1009,7 +1048,7 @@ let FORECASTS = {
       },
       {
         "broker": "",
-        "eps": null,
+        "eps": null, "eps27": null, "eps28": null,
         "revenue": null,
         "target_price": null,
         "rating": "",
@@ -1017,7 +1056,7 @@ let FORECASTS = {
       },
       {
         "broker": "",
-        "eps": null,
+        "eps": null, "eps27": null, "eps28": null,
         "revenue": null,
         "target_price": null,
         "rating": "",
@@ -1025,7 +1064,7 @@ let FORECASTS = {
       },
       {
         "broker": "",
-        "eps": null,
+        "eps": null, "eps27": null, "eps28": null,
         "revenue": null,
         "target_price": null,
         "rating": "",
@@ -1039,7 +1078,7 @@ let FORECASTS = {
     "brokers": [
       {
         "broker": "",
-        "eps": null,
+        "eps": null, "eps27": null, "eps28": null,
         "revenue": null,
         "target_price": null,
         "rating": "",
@@ -1047,7 +1086,7 @@ let FORECASTS = {
       },
       {
         "broker": "",
-        "eps": null,
+        "eps": null, "eps27": null, "eps28": null,
         "revenue": null,
         "target_price": null,
         "rating": "",
@@ -1055,7 +1094,7 @@ let FORECASTS = {
       },
       {
         "broker": "",
-        "eps": null,
+        "eps": null, "eps27": null, "eps28": null,
         "revenue": null,
         "target_price": null,
         "rating": "",
@@ -1063,7 +1102,7 @@ let FORECASTS = {
       },
       {
         "broker": "",
-        "eps": null,
+        "eps": null, "eps27": null, "eps28": null,
         "revenue": null,
         "target_price": null,
         "rating": "",
@@ -1071,7 +1110,7 @@ let FORECASTS = {
       },
       {
         "broker": "",
-        "eps": null,
+        "eps": null, "eps27": null, "eps28": null,
         "revenue": null,
         "target_price": null,
         "rating": "",
@@ -1085,7 +1124,7 @@ let FORECASTS = {
     "brokers": [
       {
         "broker": "",
-        "eps": null,
+        "eps": null, "eps27": null, "eps28": null,
         "revenue": null,
         "target_price": null,
         "rating": "",
@@ -1093,7 +1132,7 @@ let FORECASTS = {
       },
       {
         "broker": "",
-        "eps": null,
+        "eps": null, "eps27": null, "eps28": null,
         "revenue": null,
         "target_price": null,
         "rating": "",
@@ -1101,7 +1140,7 @@ let FORECASTS = {
       },
       {
         "broker": "",
-        "eps": null,
+        "eps": null, "eps27": null, "eps28": null,
         "revenue": null,
         "target_price": null,
         "rating": "",
@@ -1109,7 +1148,7 @@ let FORECASTS = {
       },
       {
         "broker": "",
-        "eps": null,
+        "eps": null, "eps27": null, "eps28": null,
         "revenue": null,
         "target_price": null,
         "rating": "",
@@ -1117,7 +1156,7 @@ let FORECASTS = {
       },
       {
         "broker": "",
-        "eps": null,
+        "eps": null, "eps27": null, "eps28": null,
         "revenue": null,
         "target_price": null,
         "rating": "",
@@ -1131,7 +1170,7 @@ let FORECASTS = {
     "brokers": [
       {
         "broker": "",
-        "eps": null,
+        "eps": null, "eps27": null, "eps28": null,
         "revenue": null,
         "target_price": null,
         "rating": "",
@@ -1139,7 +1178,7 @@ let FORECASTS = {
       },
       {
         "broker": "",
-        "eps": null,
+        "eps": null, "eps27": null, "eps28": null,
         "revenue": null,
         "target_price": null,
         "rating": "",
@@ -1147,7 +1186,7 @@ let FORECASTS = {
       },
       {
         "broker": "",
-        "eps": null,
+        "eps": null, "eps27": null, "eps28": null,
         "revenue": null,
         "target_price": null,
         "rating": "",
@@ -1155,7 +1194,7 @@ let FORECASTS = {
       },
       {
         "broker": "",
-        "eps": null,
+        "eps": null, "eps27": null, "eps28": null,
         "revenue": null,
         "target_price": null,
         "rating": "",
@@ -1163,7 +1202,7 @@ let FORECASTS = {
       },
       {
         "broker": "",
-        "eps": null,
+        "eps": null, "eps27": null, "eps28": null,
         "revenue": null,
         "target_price": null,
         "rating": "",
@@ -1177,7 +1216,7 @@ let FORECASTS = {
     "brokers": [
       {
         "broker": "",
-        "eps": null,
+        "eps": null, "eps27": null, "eps28": null,
         "revenue": null,
         "target_price": null,
         "rating": "",
@@ -1185,7 +1224,7 @@ let FORECASTS = {
       },
       {
         "broker": "",
-        "eps": null,
+        "eps": null, "eps27": null, "eps28": null,
         "revenue": null,
         "target_price": null,
         "rating": "",
@@ -1193,7 +1232,7 @@ let FORECASTS = {
       },
       {
         "broker": "",
-        "eps": null,
+        "eps": null, "eps27": null, "eps28": null,
         "revenue": null,
         "target_price": null,
         "rating": "",
@@ -1201,7 +1240,7 @@ let FORECASTS = {
       },
       {
         "broker": "",
-        "eps": null,
+        "eps": null, "eps27": null, "eps28": null,
         "revenue": null,
         "target_price": null,
         "rating": "",
@@ -1209,7 +1248,7 @@ let FORECASTS = {
       },
       {
         "broker": "",
-        "eps": null,
+        "eps": null, "eps27": null, "eps28": null,
         "revenue": null,
         "target_price": null,
         "rating": "",
@@ -1223,7 +1262,7 @@ let FORECASTS = {
     "brokers": [
       {
         "broker": "",
-        "eps": null,
+        "eps": null, "eps27": null, "eps28": null,
         "revenue": null,
         "target_price": null,
         "rating": "",
@@ -1231,7 +1270,7 @@ let FORECASTS = {
       },
       {
         "broker": "",
-        "eps": null,
+        "eps": null, "eps27": null, "eps28": null,
         "revenue": null,
         "target_price": null,
         "rating": "",
@@ -1239,7 +1278,7 @@ let FORECASTS = {
       },
       {
         "broker": "",
-        "eps": null,
+        "eps": null, "eps27": null, "eps28": null,
         "revenue": null,
         "target_price": null,
         "rating": "",
@@ -1247,7 +1286,7 @@ let FORECASTS = {
       },
       {
         "broker": "",
-        "eps": null,
+        "eps": null, "eps27": null, "eps28": null,
         "revenue": null,
         "target_price": null,
         "rating": "",
@@ -1255,7 +1294,7 @@ let FORECASTS = {
       },
       {
         "broker": "",
-        "eps": null,
+        "eps": null, "eps27": null, "eps28": null,
         "revenue": null,
         "target_price": null,
         "rating": "",
@@ -1269,7 +1308,7 @@ let FORECASTS = {
     "brokers": [
       {
         "broker": "",
-        "eps": null,
+        "eps": null, "eps27": null, "eps28": null,
         "revenue": null,
         "target_price": null,
         "rating": "",
@@ -1277,7 +1316,7 @@ let FORECASTS = {
       },
       {
         "broker": "",
-        "eps": null,
+        "eps": null, "eps27": null, "eps28": null,
         "revenue": null,
         "target_price": null,
         "rating": "",
@@ -1285,7 +1324,7 @@ let FORECASTS = {
       },
       {
         "broker": "",
-        "eps": null,
+        "eps": null, "eps27": null, "eps28": null,
         "revenue": null,
         "target_price": null,
         "rating": "",
@@ -1293,7 +1332,7 @@ let FORECASTS = {
       },
       {
         "broker": "",
-        "eps": null,
+        "eps": null, "eps27": null, "eps28": null,
         "revenue": null,
         "target_price": null,
         "rating": "",
@@ -1301,7 +1340,7 @@ let FORECASTS = {
       },
       {
         "broker": "",
-        "eps": null,
+        "eps": null, "eps27": null, "eps28": null,
         "revenue": null,
         "target_price": null,
         "rating": "",
@@ -1315,7 +1354,7 @@ let FORECASTS = {
     "brokers": [
       {
         "broker": "",
-        "eps": null,
+        "eps": null, "eps27": null, "eps28": null,
         "revenue": null,
         "target_price": null,
         "rating": "",
@@ -1323,7 +1362,7 @@ let FORECASTS = {
       },
       {
         "broker": "",
-        "eps": null,
+        "eps": null, "eps27": null, "eps28": null,
         "revenue": null,
         "target_price": null,
         "rating": "",
@@ -1331,7 +1370,7 @@ let FORECASTS = {
       },
       {
         "broker": "",
-        "eps": null,
+        "eps": null, "eps27": null, "eps28": null,
         "revenue": null,
         "target_price": null,
         "rating": "",
@@ -1339,7 +1378,7 @@ let FORECASTS = {
       },
       {
         "broker": "",
-        "eps": null,
+        "eps": null, "eps27": null, "eps28": null,
         "revenue": null,
         "target_price": null,
         "rating": "",
@@ -1347,7 +1386,7 @@ let FORECASTS = {
       },
       {
         "broker": "",
-        "eps": null,
+        "eps": null, "eps27": null, "eps28": null,
         "revenue": null,
         "target_price": null,
         "rating": "",
@@ -1361,7 +1400,7 @@ let FORECASTS = {
     "brokers": [
       {
         "broker": "",
-        "eps": null,
+        "eps": null, "eps27": null, "eps28": null,
         "revenue": null,
         "target_price": null,
         "rating": "",
@@ -1369,7 +1408,7 @@ let FORECASTS = {
       },
       {
         "broker": "",
-        "eps": null,
+        "eps": null, "eps27": null, "eps28": null,
         "revenue": null,
         "target_price": null,
         "rating": "",
@@ -1377,7 +1416,7 @@ let FORECASTS = {
       },
       {
         "broker": "",
-        "eps": null,
+        "eps": null, "eps27": null, "eps28": null,
         "revenue": null,
         "target_price": null,
         "rating": "",
@@ -1385,7 +1424,7 @@ let FORECASTS = {
       },
       {
         "broker": "",
-        "eps": null,
+        "eps": null, "eps27": null, "eps28": null,
         "revenue": null,
         "target_price": null,
         "rating": "",
@@ -1393,7 +1432,7 @@ let FORECASTS = {
       },
       {
         "broker": "",
-        "eps": null,
+        "eps": null, "eps27": null, "eps28": null,
         "revenue": null,
         "target_price": null,
         "rating": "",
@@ -1407,7 +1446,7 @@ let FORECASTS = {
     "brokers": [
       {
         "broker": "",
-        "eps": null,
+        "eps": null, "eps27": null, "eps28": null,
         "revenue": null,
         "target_price": null,
         "rating": "",
@@ -1415,7 +1454,7 @@ let FORECASTS = {
       },
       {
         "broker": "",
-        "eps": null,
+        "eps": null, "eps27": null, "eps28": null,
         "revenue": null,
         "target_price": null,
         "rating": "",
@@ -1423,7 +1462,7 @@ let FORECASTS = {
       },
       {
         "broker": "",
-        "eps": null,
+        "eps": null, "eps27": null, "eps28": null,
         "revenue": null,
         "target_price": null,
         "rating": "",
@@ -1431,7 +1470,7 @@ let FORECASTS = {
       },
       {
         "broker": "",
-        "eps": null,
+        "eps": null, "eps27": null, "eps28": null,
         "revenue": null,
         "target_price": null,
         "rating": "",
@@ -1439,7 +1478,7 @@ let FORECASTS = {
       },
       {
         "broker": "",
-        "eps": null,
+        "eps": null, "eps27": null, "eps28": null,
         "revenue": null,
         "target_price": null,
         "rating": "",
@@ -1453,7 +1492,7 @@ let FORECASTS = {
     "brokers": [
       {
         "broker": "",
-        "eps": null,
+        "eps": null, "eps27": null, "eps28": null,
         "revenue": null,
         "target_price": null,
         "rating": "",
@@ -1461,7 +1500,7 @@ let FORECASTS = {
       },
       {
         "broker": "",
-        "eps": null,
+        "eps": null, "eps27": null, "eps28": null,
         "revenue": null,
         "target_price": null,
         "rating": "",
@@ -1469,7 +1508,7 @@ let FORECASTS = {
       },
       {
         "broker": "",
-        "eps": null,
+        "eps": null, "eps27": null, "eps28": null,
         "revenue": null,
         "target_price": null,
         "rating": "",
@@ -1477,7 +1516,7 @@ let FORECASTS = {
       },
       {
         "broker": "",
-        "eps": null,
+        "eps": null, "eps27": null, "eps28": null,
         "revenue": null,
         "target_price": null,
         "rating": "",
@@ -1485,7 +1524,7 @@ let FORECASTS = {
       },
       {
         "broker": "",
-        "eps": null,
+        "eps": null, "eps27": null, "eps28": null,
         "revenue": null,
         "target_price": null,
         "rating": "",
@@ -1499,7 +1538,7 @@ let FORECASTS = {
     "brokers": [
       {
         "broker": "",
-        "eps": null,
+        "eps": null, "eps27": null, "eps28": null,
         "revenue": null,
         "target_price": null,
         "rating": "",
@@ -1507,7 +1546,7 @@ let FORECASTS = {
       },
       {
         "broker": "",
-        "eps": null,
+        "eps": null, "eps27": null, "eps28": null,
         "revenue": null,
         "target_price": null,
         "rating": "",
@@ -1515,7 +1554,7 @@ let FORECASTS = {
       },
       {
         "broker": "",
-        "eps": null,
+        "eps": null, "eps27": null, "eps28": null,
         "revenue": null,
         "target_price": null,
         "rating": "",
@@ -1523,7 +1562,7 @@ let FORECASTS = {
       },
       {
         "broker": "",
-        "eps": null,
+        "eps": null, "eps27": null, "eps28": null,
         "revenue": null,
         "target_price": null,
         "rating": "",
@@ -1531,7 +1570,7 @@ let FORECASTS = {
       },
       {
         "broker": "",
-        "eps": null,
+        "eps": null, "eps27": null, "eps28": null,
         "revenue": null,
         "target_price": null,
         "rating": "",
@@ -1545,7 +1584,7 @@ let FORECASTS = {
     "brokers": [
       {
         "broker": "",
-        "eps": null,
+        "eps": null, "eps27": null, "eps28": null,
         "revenue": null,
         "target_price": null,
         "rating": "",
@@ -1553,7 +1592,7 @@ let FORECASTS = {
       },
       {
         "broker": "",
-        "eps": null,
+        "eps": null, "eps27": null, "eps28": null,
         "revenue": null,
         "target_price": null,
         "rating": "",
@@ -1561,7 +1600,7 @@ let FORECASTS = {
       },
       {
         "broker": "",
-        "eps": null,
+        "eps": null, "eps27": null, "eps28": null,
         "revenue": null,
         "target_price": null,
         "rating": "",
@@ -1569,7 +1608,7 @@ let FORECASTS = {
       },
       {
         "broker": "",
-        "eps": null,
+        "eps": null, "eps27": null, "eps28": null,
         "revenue": null,
         "target_price": null,
         "rating": "",
@@ -1577,7 +1616,7 @@ let FORECASTS = {
       },
       {
         "broker": "",
-        "eps": null,
+        "eps": null, "eps27": null, "eps28": null,
         "revenue": null,
         "target_price": null,
         "rating": "",
@@ -1589,11 +1628,11 @@ let FORECASTS = {
     "name": "智邦",
     "year": 2026,
     "brokers": [
-      { "broker": "群益投顧", "eps": 67.29, "revenue": 340779, "target_price": 3000, "rating": "Buy", "report_date": "2026-05-05" },
-      { "broker": "凱基投顧", "eps": 61.74, "revenue": 311582, "target_price": 1850, "rating": "增加持股 (OW)", "report_date": "2026-03-12" },
+      { "broker": "群益投顧", "eps": 67.29, "eps27": null, "eps28": null, "revenue": 340779, "target_price": 3000, "rating": "Buy", "report_date": "2026-05-05" },
+      { "broker": "凱基投顧", "eps": 61.74, "eps27": null, "eps28": null, "revenue": 311582, "target_price": 1850, "rating": "增加持股 (OW)", "report_date": "2026-03-12" },
       {
         "broker": "",
-        "eps": null,
+        "eps": null, "eps27": null, "eps28": null,
         "revenue": null,
         "target_price": null,
         "rating": "",
@@ -1601,7 +1640,7 @@ let FORECASTS = {
       },
       {
         "broker": "",
-        "eps": null,
+        "eps": null, "eps27": null, "eps28": null,
         "revenue": null,
         "target_price": null,
         "rating": "",
@@ -1609,7 +1648,7 @@ let FORECASTS = {
       },
       {
         "broker": "",
-        "eps": null,
+        "eps": null, "eps27": null, "eps28": null,
         "revenue": null,
         "target_price": null,
         "rating": "",
@@ -1621,11 +1660,11 @@ let FORECASTS = {
     "name": "金像電",
     "year": 2026,
     "brokers": [
-      { "broker": "Morgan Stanley", "eps": 41.63, "revenue": 97990, "target_price": 1310, "rating": "Overweight", "report_date": "2026-05-12" },
-      { "broker": "中信投顧", "eps": 35.21, "revenue": 91537, "target_price": 1450, "rating": "Buy", "report_date": "2026-03-24" },
-      { "broker": "大和", "eps": 36.20, "revenue": 97635, "target_price": 1380, "rating": "Buy", "report_date": "2026-04-13" },
-      { "broker": "凱基投顧", "eps": 32.82, "revenue": 86893, "target_price": 1100, "rating": "增加持股", "report_date": "2026-03-11" },
-      { "broker": "富邦投顧", "eps": 33.43, "revenue": 89651, "target_price": 1110, "rating": "買進", "report_date": "2026-03-10" }
+      { "broker": "Morgan Stanley", "eps": 41.63, "eps27": null, "eps28": null, "revenue": 97990, "target_price": 1310, "rating": "Overweight", "report_date": "2026-05-12" },
+      { "broker": "中信投顧", "eps": 35.21, "eps27": null, "eps28": null, "revenue": 91537, "target_price": 1450, "rating": "Buy", "report_date": "2026-03-24" },
+      { "broker": "大和", "eps": 36.20, "eps27": null, "eps28": null, "revenue": 97635, "target_price": 1380, "rating": "Buy", "report_date": "2026-04-13" },
+      { "broker": "凱基投顧", "eps": 32.82, "eps27": null, "eps28": null, "revenue": 86893, "target_price": 1100, "rating": "增加持股", "report_date": "2026-03-11" },
+      { "broker": "富邦投顧", "eps": 33.43, "eps27": null, "eps28": null, "revenue": 89651, "target_price": 1110, "rating": "買進", "report_date": "2026-03-10" }
     ]
   },
   "2382": {
@@ -1634,7 +1673,7 @@ let FORECASTS = {
     "brokers": [
       {
         "broker": "",
-        "eps": null,
+        "eps": null, "eps27": null, "eps28": null,
         "revenue": null,
         "target_price": null,
         "rating": "",
@@ -1642,7 +1681,7 @@ let FORECASTS = {
       },
       {
         "broker": "",
-        "eps": null,
+        "eps": null, "eps27": null, "eps28": null,
         "revenue": null,
         "target_price": null,
         "rating": "",
@@ -1650,7 +1689,7 @@ let FORECASTS = {
       },
       {
         "broker": "",
-        "eps": null,
+        "eps": null, "eps27": null, "eps28": null,
         "revenue": null,
         "target_price": null,
         "rating": "",
@@ -1658,7 +1697,7 @@ let FORECASTS = {
       },
       {
         "broker": "",
-        "eps": null,
+        "eps": null, "eps27": null, "eps28": null,
         "revenue": null,
         "target_price": null,
         "rating": "",
@@ -1666,7 +1705,7 @@ let FORECASTS = {
       },
       {
         "broker": "",
-        "eps": null,
+        "eps": null, "eps27": null, "eps28": null,
         "revenue": null,
         "target_price": null,
         "rating": "",
@@ -1680,7 +1719,7 @@ let FORECASTS = {
     "brokers": [
       {
         "broker": "",
-        "eps": null,
+        "eps": null, "eps27": null, "eps28": null,
         "revenue": null,
         "target_price": null,
         "rating": "",
@@ -1688,7 +1727,7 @@ let FORECASTS = {
       },
       {
         "broker": "",
-        "eps": null,
+        "eps": null, "eps27": null, "eps28": null,
         "revenue": null,
         "target_price": null,
         "rating": "",
@@ -1696,7 +1735,7 @@ let FORECASTS = {
       },
       {
         "broker": "",
-        "eps": null,
+        "eps": null, "eps27": null, "eps28": null,
         "revenue": null,
         "target_price": null,
         "rating": "",
@@ -1704,7 +1743,7 @@ let FORECASTS = {
       },
       {
         "broker": "",
-        "eps": null,
+        "eps": null, "eps27": null, "eps28": null,
         "revenue": null,
         "target_price": null,
         "rating": "",
@@ -1712,7 +1751,7 @@ let FORECASTS = {
       },
       {
         "broker": "",
-        "eps": null,
+        "eps": null, "eps27": null, "eps28": null,
         "revenue": null,
         "target_price": null,
         "rating": "",
@@ -1726,7 +1765,7 @@ let FORECASTS = {
     "brokers": [
       {
         "broker": "",
-        "eps": null,
+        "eps": null, "eps27": null, "eps28": null,
         "revenue": null,
         "target_price": null,
         "rating": "",
@@ -1734,7 +1773,7 @@ let FORECASTS = {
       },
       {
         "broker": "",
-        "eps": null,
+        "eps": null, "eps27": null, "eps28": null,
         "revenue": null,
         "target_price": null,
         "rating": "",
@@ -1742,7 +1781,7 @@ let FORECASTS = {
       },
       {
         "broker": "",
-        "eps": null,
+        "eps": null, "eps27": null, "eps28": null,
         "revenue": null,
         "target_price": null,
         "rating": "",
@@ -1750,7 +1789,7 @@ let FORECASTS = {
       },
       {
         "broker": "",
-        "eps": null,
+        "eps": null, "eps27": null, "eps28": null,
         "revenue": null,
         "target_price": null,
         "rating": "",
@@ -1758,7 +1797,7 @@ let FORECASTS = {
       },
       {
         "broker": "",
-        "eps": null,
+        "eps": null, "eps27": null, "eps28": null,
         "revenue": null,
         "target_price": null,
         "rating": "",
@@ -1772,7 +1811,7 @@ let FORECASTS = {
     "brokers": [
       {
         "broker": "",
-        "eps": null,
+        "eps": null, "eps27": null, "eps28": null,
         "revenue": null,
         "target_price": null,
         "rating": "",
@@ -1780,7 +1819,7 @@ let FORECASTS = {
       },
       {
         "broker": "",
-        "eps": null,
+        "eps": null, "eps27": null, "eps28": null,
         "revenue": null,
         "target_price": null,
         "rating": "",
@@ -1788,7 +1827,7 @@ let FORECASTS = {
       },
       {
         "broker": "",
-        "eps": null,
+        "eps": null, "eps27": null, "eps28": null,
         "revenue": null,
         "target_price": null,
         "rating": "",
@@ -1796,7 +1835,7 @@ let FORECASTS = {
       },
       {
         "broker": "",
-        "eps": null,
+        "eps": null, "eps27": null, "eps28": null,
         "revenue": null,
         "target_price": null,
         "rating": "",
@@ -1804,7 +1843,7 @@ let FORECASTS = {
       },
       {
         "broker": "",
-        "eps": null,
+        "eps": null, "eps27": null, "eps28": null,
         "revenue": null,
         "target_price": null,
         "rating": "",
@@ -1818,7 +1857,7 @@ let FORECASTS = {
     "brokers": [
       {
         "broker": "",
-        "eps": null,
+        "eps": null, "eps27": null, "eps28": null,
         "revenue": null,
         "target_price": null,
         "rating": "",
@@ -1826,7 +1865,7 @@ let FORECASTS = {
       },
       {
         "broker": "",
-        "eps": null,
+        "eps": null, "eps27": null, "eps28": null,
         "revenue": null,
         "target_price": null,
         "rating": "",
@@ -1834,7 +1873,7 @@ let FORECASTS = {
       },
       {
         "broker": "",
-        "eps": null,
+        "eps": null, "eps27": null, "eps28": null,
         "revenue": null,
         "target_price": null,
         "rating": "",
@@ -1842,7 +1881,7 @@ let FORECASTS = {
       },
       {
         "broker": "",
-        "eps": null,
+        "eps": null, "eps27": null, "eps28": null,
         "revenue": null,
         "target_price": null,
         "rating": "",
@@ -1850,7 +1889,7 @@ let FORECASTS = {
       },
       {
         "broker": "",
-        "eps": null,
+        "eps": null, "eps27": null, "eps28": null,
         "revenue": null,
         "target_price": null,
         "rating": "",
@@ -1864,7 +1903,7 @@ let FORECASTS = {
     "brokers": [
       {
         "broker": "",
-        "eps": null,
+        "eps": null, "eps27": null, "eps28": null,
         "revenue": null,
         "target_price": null,
         "rating": "",
@@ -1872,7 +1911,7 @@ let FORECASTS = {
       },
       {
         "broker": "",
-        "eps": null,
+        "eps": null, "eps27": null, "eps28": null,
         "revenue": null,
         "target_price": null,
         "rating": "",
@@ -1880,7 +1919,7 @@ let FORECASTS = {
       },
       {
         "broker": "",
-        "eps": null,
+        "eps": null, "eps27": null, "eps28": null,
         "revenue": null,
         "target_price": null,
         "rating": "",
@@ -1888,7 +1927,7 @@ let FORECASTS = {
       },
       {
         "broker": "",
-        "eps": null,
+        "eps": null, "eps27": null, "eps28": null,
         "revenue": null,
         "target_price": null,
         "rating": "",
@@ -1896,7 +1935,7 @@ let FORECASTS = {
       },
       {
         "broker": "",
-        "eps": null,
+        "eps": null, "eps27": null, "eps28": null,
         "revenue": null,
         "target_price": null,
         "rating": "",
@@ -1910,7 +1949,7 @@ let FORECASTS = {
     "brokers": [
       {
         "broker": "",
-        "eps": null,
+        "eps": null, "eps27": null, "eps28": null,
         "revenue": null,
         "target_price": null,
         "rating": "",
@@ -1918,7 +1957,7 @@ let FORECASTS = {
       },
       {
         "broker": "",
-        "eps": null,
+        "eps": null, "eps27": null, "eps28": null,
         "revenue": null,
         "target_price": null,
         "rating": "",
@@ -1926,7 +1965,7 @@ let FORECASTS = {
       },
       {
         "broker": "",
-        "eps": null,
+        "eps": null, "eps27": null, "eps28": null,
         "revenue": null,
         "target_price": null,
         "rating": "",
@@ -1934,7 +1973,7 @@ let FORECASTS = {
       },
       {
         "broker": "",
-        "eps": null,
+        "eps": null, "eps27": null, "eps28": null,
         "revenue": null,
         "target_price": null,
         "rating": "",
@@ -1942,7 +1981,7 @@ let FORECASTS = {
       },
       {
         "broker": "",
-        "eps": null,
+        "eps": null, "eps27": null, "eps28": null,
         "revenue": null,
         "target_price": null,
         "rating": "",
@@ -2404,6 +2443,70 @@ function buildRevChart(s) {
   });
 }
 
+// ── 2027/28 Forward PE ──
+// 即時報價來源：本機用 server.py(/api/quote)，線上用 Cloudflare Worker（與 watchlist 相同）。
+const _isLocal = ['localhost','127.0.0.1','0.0.0.0',''].includes(location.hostname);
+const QUOTE_API = (window.QUOTE_API) || (_isLocal ? '/api/quote' : 'https://stock-quote-proxy.vnini311.workers.dev/api/quote');
+const PRICE_CACHE = {}; // id -> {price, time}
+
+async function fetchPrice(id) {
+  if (PRICE_CACHE[id]) return PRICE_CACHE[id];
+  const r = await fetch(QUOTE_API + '?codes=' + id, { cache: 'no-store' });
+  if (!r.ok) throw new Error('HTTP ' + r.status);
+  const j = await r.json();
+  const q = (j.quotes || {})[id];
+  if (!q || !q.price) throw new Error('no price');
+  PRICE_CACHE[id] = { price: +q.price, time: q.time || '' };
+  return PRICE_CACHE[id];
+}
+
+function renderForward(s, px) {
+  const tbody = document.getElementById('fwd-tbody');
+  const sub = document.getElementById('fwd-sub');
+  const fc = FORECASTS[s.id];
+  const slots = (fc && fc.brokers) ? fc.brokers : [];
+  const price = px ? px.price : null;
+  sub.textContent = price != null
+    ? `FORWARD ESTIMATES · 現價 ${price.toLocaleString('en-US')} 元${px.time ? ' · ' + px.time : ''}`
+    : 'FORWARD ESTIMATES · 現價無法取得，Fwd PE 暫無法計算';
+
+  const fmtPe = eps => (price != null && eps != null && eps > 0) ? (price / eps).toFixed(1) + 'x' : '—';
+  let html = '';
+  for (let i = 0; i < 5; i++) {
+    const b = slots[i] || { broker: '', eps27: null, eps28: null, report_date: '' };
+    if (!b.broker && b.eps27 == null && b.eps28 == null) {
+      html += `<tr class="empty"><td>— 待填入 —</td><td class="num">—</td><td class="num">—</td><td class="num">—</td><td class="num">—</td><td class="num">—</td></tr>`;
+      continue;
+    }
+    html += `<tr>
+      <td>${b.broker || '—'}</td>
+      <td class="num">${b.eps27 != null ? b.eps27.toFixed(2) : '—'}</td>
+      <td class="num">${fmtPe(b.eps27)}</td>
+      <td class="num">${b.eps28 != null ? b.eps28.toFixed(2) : '—'}</td>
+      <td class="num">${fmtPe(b.eps28)}</td>
+      <td class="num">${b.report_date || '—'}</td>
+    </tr>`;
+  }
+  tbody.innerHTML = html;
+
+  const avg = arr => arr.length ? arr.reduce((a,b) => a + b, 0) / arr.length : null;
+  const a27 = avg(slots.filter(b => b.eps27 != null).map(b => b.eps27));
+  const a28 = avg(slots.filter(b => b.eps28 != null).map(b => b.eps28));
+  document.getElementById('fwd-27-avg').textContent = a27 != null ? a27.toFixed(2) : '—';
+  document.getElementById('fwd-28-avg').textContent = a28 != null ? a28.toFixed(2) : '—';
+  document.getElementById('fwd-27-pe').textContent = fmtPe(a27);
+  document.getElementById('fwd-28-pe').textContent = fmtPe(a28);
+}
+
+function loadForward(s) {
+  renderForward(s, null); // 先畫表格（EPS 部分不依賴報價）
+  document.getElementById('fwd-sub').textContent = 'FORWARD ESTIMATES · 現價載入中…';
+  const stillCurrent = () => document.getElementById('t-id').textContent === s.id;
+  fetchPrice(s.id)
+    .then(px => { if (stillCurrent()) renderForward(s, px); })
+    .catch(() => { if (stillCurrent()) renderForward(s, null); });
+}
+
 // ── master render ──
 function render(id) {
   const s = STOCKS.find(x => x.id === id);
@@ -2418,6 +2521,7 @@ function render(id) {
   renderKpi(s);
   renderCompletion(s);
   renderBrokers(s);
+  loadForward(s);
   buildMainChart(s);
   // Revenue chart needs DOM cleared if previously replaced
   let canvas = document.getElementById('rev-chart');
