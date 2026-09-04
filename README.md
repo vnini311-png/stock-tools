@@ -161,17 +161,19 @@ cd stock-tools && python3 tools/review_metrics.py --push
 | `持股歷史股價_{30檔,ADAM組合}-*.xlsx` | MA20/60/240、MACD、KD(9,3,3)、RSI(14)、YTD 高低 |
 | `twse_institutional_margin.csv` | 三大法人買賣超、融資融券、融資使用率、券資比 |
 | `tools/chip_tool.html` 的 dataPayload | 外資/投信/自營持股張數與比率、千張大戶 |
-| TWSE `TWT93U` + TPEx `margin/sbl` | **借券賣出餘額 LS** 與當日增減（唯一需要連網的部分） |
+| 同一份 CSV 的 `借券賣出餘額(張)` | **借券賣出餘額 LS** 與當日增減 |
 
-借券兩支端點（單位皆為股，程式換算成張）：
+**這支腳本完全不連網**，只讀既有管線的產出。借券賣出餘額由 `twse_fetch.py --9pm` 從
+TWSE `TWT93U` 與 TPEx `margin/sbl` 抓進 CSV（欄位 `借券賣出餘額(張)`，已換算成張）：
 
 ```
 https://www.twse.com.tw/rwd/zh/marginTrading/TWT93U?date=YYYYMMDD&selectType=ALL&response=json
 https://www.tpex.org.tw/www/zh-tw/margin/sbl?date=YYYY/MM/DD&response=json
 ```
 
-兩張表欄位相同：`[代號, 名稱, 融券×6, 借券賣出×6, 備註]`，借券當日餘額在 index 12、前日餘額在 index 8。
-連網失敗只會讓 LS 留白，不影響其他欄位；加 `--no-sbl` 可完全跳過。
+兩張表欄位相同：`[代號, 名稱, 融券×6, 借券賣出×6, 備註]`，借券當日餘額在 index 12。
+LS 的當日增減是拿前後兩個交易日的餘額相減；因為 CSV 存的已是四捨五入到「張」的值，
+增減可能與逐股相減再換算差 ±1 張。
 
 > **本益比是手動欄位**，在 Overview 分頁直接填。沒有自動計算是刻意的：季報頁的 EPS 對
 > 有分割的個股（如寶雅 1:10）是分割前口徑，直接除股價會算出錯得離譜的倍數。

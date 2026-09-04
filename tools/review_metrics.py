@@ -8,23 +8,17 @@
        → 三大法人買賣超、融資融券餘額與增減、融資使用率、券資比
   3. tools/chip_tool.html 的 dataPayload
        → 外資/投信/自營持股張數與比率、千張大戶占比
-  4. TWSE TWT93U + TPEx margin/sbl（唯一需要連網的部分）
-       → 借券賣出餘額 LS 與當日增減
+  （借券賣出餘額也在同一份 CSV 裡，由 twse_fetch.py --9pm 寫入，這裡不再自己連網）
 
 用法:
     python3 tools/review_metrics.py            # 寫入 ../data/review-metrics.json
     python3 tools/review_metrics.py --push     # 順便 commit + push
-    python3 tools/review_metrics.py --no-sbl   # 跳過借券（不連網）
 """
 import csv
 import json
 import re
 import subprocess
 import sys
-import time
-import urllib.error
-import urllib.parse
-import urllib.request
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
 
@@ -273,63 +267,11 @@ def load_chip_payload():
 
 LOT = 1000.0
 
-# ─────────────────── 借券賣出餘額（LS） ───────────────────
-SBL_TWSE = "https://www.twse.com.tw/rwd/zh/marginTrading/TWT93U"
-SBL_TPEX = "https://www.tpex.org.tw/www/zh-tw/margin/sbl"
-UA = {
-    "User-Agent": ("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 "
-                   "(KHTML, like Gecko) Chrome/120.0 Safari/537.36"),
-    "Accept": "application/json,text/plain,*/*",
-}
-# 兩張表的欄位都是 [代號, 名稱, 融券×6, 借券×6, 備註]，借券當日餘額在 index 12、前日在 8
-SBL_PREV_I, SBL_BAL_I = 8, 12
+# 借券賣出餘額：twse_fetch.py --9pm 已寫進 CSV（單位為張），不必自己連網
+LS_BAL_COL = "借券賣出餘額(張)"
 
 
-def _get_json(url, params, referer, timeout=45):
-    req = urllib.request.Request(f"{url}?{urllib.parse.urlencode(params)}",
-                                 headers={**UA, "Referer": referer})
-    with urllib.request.urlopen(req, timeout=timeout) as r:
-        return json.loads(r.read())
-
-
-def fetch_sbl(target_iso):
-    """回傳 {code: (借券餘額張, 當日增減張)}。任何失敗都回空 dict，不擋主流程。"""
-    out = {}
-    ymd = target_iso.replace("-", "")
-    slash = target_iso.replace("-", "/")
-
-    def take(rows):
-        for row in rows:
-            cells = [str(c).strip() for c in row]
-            code = cells[0]
-            if not re.fullmatch(r"\d{4}", code):
-                continue
-            bal, prev = num(cells[SBL_BAL_I]), num(cells[SBL_PREV_I])
-            if bal is None:
-                continue
-            out[code] = (round(bal / LOT), round((bal - (prev or 0)) / LOT))
-
-    try:
-        j = _get_json(SBL_TWSE, {"date": ymd, "selectType": "ALL", "response": "json"},
-                      "https://www.twse.com.tw/")
-        if j.get("stat") == "OK":
-            take(j.get("data") or [])
-        else:
-            print(f"· 借券 TWSE {target_iso}: {j.get('stat')}")
-    except Exception as e:
-        print(f"⚠ 借券 TWSE 抓取失敗: {e}")
-
-    time.sleep(3)
-    try:
-        j = _get_json(SBL_TPEX, {"date": slash, "response": "json"}, "https://www.tpex.org.tw/")
-        for t in j.get("tables") or []:
-            take(t.get("data") or [])
-    except Exception as e:
-        print(f"⚠ 借券 TPEx 抓取失敗: {e}")
-    return out
-
-
-def build_chips(code, csv_rows, chip, sbl=None):
+def build_chips(code, csv_rows, chip):
     """對應筆記的 I 段（QFII/QDII/Trader/融資）與 S 段（融資UR/融券/P/C/LS）。"""
     cur = csv_rows[-1] if csv_rows else None
     if cur is None:
@@ -372,17 +314,19 @@ def build_chips(code, csv_rows, chip, sbl=None):
         ur_prev = (mp / qp) if (mp is not None and qp) else None
         pc_prev = (sp / mp * 100) if (sp is not None and mp) else None
 
-    ls_bal, ls_chg = sbl if sbl else (None, None)
+    ls_bal = num(cur.get(LS_BAL_COL))
+    ls_prev = num(csv_rows[0].get(LS_BAL_COL)) if len(csv_rows) > 1 else None
+    ls_chg = (ls_bal - ls_prev) if (ls_bal is not None and ls_prev is not None) else None
     # 融資使用率 UR = 融資餘額 / 次一營業日限額（限額為發行股數的 25%），
     # 與「融資占發行股數比率」是同一件事的兩種刻度（UR = 占股本% × 4），這裡放前者。
     S = {
         "labels": ["融資", "融資UR", "融券", "P/C", "LS"],
-        "value": [r(margin_lots, 0), r(ur, 4), r(short_lots, 0), r(pc, 2), ls_bal],
+        "value": [r(margin_lots, 0), r(ur, 4), r(short_lots, 0), r(pc, 2), r(ls_bal, 0)],
         "change": [r(d_margin, 0),
                    r(ur - ur_prev, 4) if (ur is not None and ur_prev is not None) else None,
                    r(short_lots - short_prev, 0) if (short_lots is not None and short_prev is not None) else None,
                    r(pc - pc_prev, 2) if (pc is not None and pc_prev is not None) else None,
-                   ls_chg],
+                   r(ls_chg, 0)],
     }
 
     big = build_big(chip)
@@ -423,8 +367,6 @@ def main():
     csv_chips = load_chips_csv()
     payload = load_chip_payload()
 
-    chip_date = max((rows[-1]["日期"] for rows in csv_chips.values() if rows), default=None)
-    sbl = {} if "--no-sbl" in sys.argv else fetch_sbl(chip_date) if chip_date else {}
 
     names = {}
     for code, rows in csv_chips.items():
@@ -437,7 +379,7 @@ def main():
     stocks = {}
     for code in sorted(prices):
         tech = prices[code]
-        I, S, big = build_chips(code, csv_chips.get(code, []), payload.get(code), sbl.get(code))
+        I, S, big = build_chips(code, csv_chips.get(code, []), payload.get(code))
         stocks[code] = {
             "code": code,
             "name": names.get(code) or code,
