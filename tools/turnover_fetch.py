@@ -152,9 +152,19 @@ def fetch_us_daily():
 
 
 def fetch_json(url):
-    req = urllib.request.Request(url, headers=UA)
-    with urllib.request.urlopen(req, timeout=30) as r:
-        return json.loads(r.read().decode("utf-8"))
+    try:
+        req = urllib.request.Request(url, headers=UA)
+        with urllib.request.urlopen(req, timeout=30) as r:
+            return json.loads(r.read().decode("utf-8"))
+    except Exception:
+        # TWSE 會不定期重置 python-urllib 的 TLS 連線，改用 curl 重抓
+        r = subprocess.run(
+            ["curl", "-s", "--max-time", "60", "-A", UA["User-Agent"],
+             "-H", "Accept: application/json", url],
+            capture_output=True, text=True)
+        if r.returncode != 0 or not r.stdout:
+            raise RuntimeError(f"curl 失敗 ({r.returncode}): {url}")
+        return json.loads(r.stdout)
 
 
 def is_stock(code):
