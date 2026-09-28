@@ -85,7 +85,7 @@
 <body>
 <div class="toolbar">
   <a class="backbtn" href="../index.html">&#8592; 返回工具列</a>
-  <div class="ttl">成交值排行榜 Dashboard<span class="sub">台股 2026/09/24 ・ 美股 2026/09/25 ・ Top 20 ・ 含較前日變化</span></div>
+  <div class="ttl">成交值排行榜 Dashboard<span class="sub">台股 2026/09/24 ・ 美股 2026/09/28 ・ Top 20 ・ 含較前日變化</span></div>
   <div class="tabs">
     <button class="tab active" data-mk="tw"><span class="d" style="background:var(--tw)"></span>台股</button>
     <button class="tab" data-mk="us"><span class="d" style="background:var(--us)"></span>美股</button>
@@ -147,11 +147,11 @@
       <div class="rticks" id="raceTicks"></div>
     </div>
     <div class="racearea" id="raceArea"></div>
-    <div class="racehint">拖動上方滑桿即可沿時間軸檢視名次變化；柱長 = 當日成交值，顏色 = 產業。台股 9/17→9/24（6 日）、美股 9/18→9/25（6 日）。</div>
+    <div class="racehint">拖動上方滑桿即可沿時間軸檢視名次變化；柱長 = 當日成交值，顏色 = 產業。台股 9/17→9/24（6 日）、美股 9/21→9/28（6 日）。</div>
   </div>
 </div>
 
-<div class="foot">資料來源：上班族型交易者 APP・成交值排行榜。台股基準 2026-09-17，美股基準 2026-09-18。</div>
+<div class="foot">資料來源：上班族型交易者 APP・成交值排行榜。台股基準 2026-09-17，美股基準 2026-09-21。</div>
 
 <script>
 // 每日快照：要新增一天，於對應市場物件加一筆 "YYYY/MM/DD":[ [名稱,代號,產業,成交值], ... ]
@@ -213,15 +213,6 @@ const TW_DAILY={
  ]
 };
 const US_DAILY={
- "2026/09/18":[
- ["SpaceX","SPCX","太空",512.6],["輝達","NVDA","GPU/CPU",423],["美光科技","MU","記憶體",363.7],
- ["SanDisk","SNDK","記憶體",318.7],["蘋果","AAPL","終端裝置",291],["微軟","MSFT","M7、AI雲端",195.6],
- ["Bloom Energy","BE","能源",195.2],["英特爾","INTC","半導體",190],["特斯拉","TSLA","電動車",189.1],
- ["Meta","META","M7、AI雲端",183.7],["超微半導體","AMD","GPU/CPU",178.4],["Alphabet","GOOGL","M7、AI雲端",166.5],
- ["博通","AVGO","半導體",157.5],["SK hynix","SKHY","科技",133.3],["亞馬遜","AMZN","M7、AI雲端",132.6],
- ["Alphabet","GOOG","M7、AI雲端",117.5],["Chevron","CVX","能源",99.1],["高通","QCOM","半導體",96.8],
- ["Lumentum","LITE","光通訊",86.2],["Strategy","MSTR","加密貨幣",84.2]
- ],
  "2026/09/21":[
  ["Meta","META","M7、AI雲端",361.1],["美光科技","MU","記憶體",294.1],["超微半導體","AMD","GPU/CPU",273.9],
  ["輝達","NVDA","GPU/CPU",249.7],["英特爾","INTC","半導體",233.4],["SanDisk","SNDK","記憶體",184.5],
@@ -266,6 +257,15 @@ const US_DAILY={
  ["博通","AVGO","半導體",57.2],["Bloom Energy","BE","能源",50],["戴爾","DELL","AI伺服器",49],
  ["Alphabet","GOOG","M7、AI雲端",47.2],["好市多","COST","零售",42.7],["摩根大通","JPM","金融",39.3],
  ["Akamai Technologies","AKAM","消費",36.3],["Lumentum","LITE","光通訊",36.3]
+ ],
+ "2026/09/28":[
+ ["輝達","NVDA","GPU/CPU",323.3],["美光科技","MU","記憶體",230.7],["Meta","META","M7、AI雲端",197.7],
+ ["特斯拉","TSLA","電動車",137.1],["超微半導體","AMD","GPU/CPU",132.9],["英特爾","INTC","半導體",127.6],
+ ["SpaceX","SPCX","太空",118.8],["SanDisk","SNDK","記憶體",113.3],["蘋果","AAPL","終端裝置",109.9],
+ ["微軟","MSFT","M7、AI雲端",99.5],["亞馬遜","AMZN","M7、AI雲端",78.5],["博通","AVGO","半導體",74.3],
+ ["Alphabet","GOOGL","M7、AI雲端",65.6],["MongoDB","MDB","科技",59.6],["Alphabet","GOOG","M7、AI雲端",46.7],
+ ["甲骨文","ORCL","AI雲端",44.6],["邁威爾科技","MRVL","半導體",40.9],["Lumentum","LITE","光通訊",40.8],
+ ["Bloom Energy","BE","能源",40.7],["戴爾","DELL","AI伺服器",35.9]
  ]
 };
 
