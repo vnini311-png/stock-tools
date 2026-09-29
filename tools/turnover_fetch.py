@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""抓取台股（上市+上櫃）當日成交值 Top 20，寫入 turnover-ranking.html 的 TW_DAILY。
+"""抓取台股（上市+上櫃）當日成交值 Top 30，寫入 turnover-ranking.html 的 TW_DAILY。
 
 資料來源（官方，收盤後統計，含盤後鉅額交易，口徑略大於看盤 APP）：
   - 上市：TWSE MI_INDEX 每日收盤行情
@@ -22,7 +22,7 @@ from pathlib import Path
 
 HTML = Path(__file__).resolve().parent / "turnover-ranking.html"
 REPO = HTML.parent.parent
-TOP_N = 20
+TOP_N = 30
 KEEP_DAYS = 6  # TW_DAILY 保留的交易日數（近5日動畫 + 前一日比較用）
 
 # 代號 → 產業標籤（顯示用，沿用 APP 慣用分法；官方分類太粗不用）
