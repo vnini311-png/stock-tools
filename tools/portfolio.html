@@ -1283,6 +1283,8 @@ function normalizeState(s) {
   if (!Array.isArray(s.trades)) s.trades = [];
   if (!Array.isArray(s.holdings)) s.holdings = [];
   if (!Array.isArray(s.holdingSnapshots)) s.holdingSnapshots = [];
+  if (!Array.isArray(s.subPortfolios)) s.subPortfolios = [];
+  s.subPortfolios.forEach(p => (p.holdings || []).forEach(h => { if (!h.id) h.id = uid(); }));
   if (!s.settings) s.settings = defaultState().settings;
   s.trades.forEach(t => {
     if (!t.id) t.id = uid();
@@ -1472,8 +1474,11 @@ function renderKpi(k) {
 let holdSort = { key: 'marketValue', dir: -1 };
 function renderHoldings(k) {
   const readOnly = snapView !== 'current';
+  const viewTitle = snapView === 'current' ? '目前持股 '
+    : snapView.startsWith('sub:') ? `${escapeHtml(snapView.slice(4))} 持股 `
+    : `持股快照 ${snapView} `;
   document.getElementById('holdings-title').innerHTML =
-    (readOnly ? `持股快照 ${snapView} ` : '目前持股 ') + `<span class="count" id="holdings-count"></span>`;
+    viewTitle + `<span class="count" id="holdings-count"></span>`;
   const search = document.getElementById('hold-search').value.toLowerCase().trim();
   let rows = k.holds.map(h => ({ ...h, weight: k.totalMv > 0 ? h.marketValue / k.totalMv : 0 }));
   if (search) rows = rows.filter(h => (h.name || '').toLowerCase().includes(search) || (h.code || '').toLowerCase().includes(search));
@@ -1731,7 +1736,7 @@ function renderAll() {
   document.getElementById('year-label').textContent = state.year || new Date().getFullYear();
   const k = computeKpi();
   renderKpi(k);
-  const kv = snapView === 'current' ? k : computeKpi(getSnapshot(snapView)?.holdings || []);
+  const kv = snapView === 'current' ? k : computeKpi(viewHoldings());
   renderSnapTabs();
   renderIndustryStrip(kv);
   renderPieChart(kv);
@@ -1749,16 +1754,32 @@ function getSnapshot(date) {
   return (state.holdingSnapshots || []).find(s => s.date === date) || null;
 }
 
+function getSubPortfolio(name) {
+  return (state.subPortfolios || []).find(p => p.name === name) || null;
+}
+
+// snapView: 'current' | 'YYYY-MM-DD'(快照) | 'sub:名稱'(具名子組合)
+function viewHoldings() {
+  if (snapView === 'current') return state.holdings;
+  if (snapView.startsWith('sub:')) return getSubPortfolio(snapView.slice(4))?.holdings || [];
+  return getSnapshot(snapView)?.holdings || [];
+}
+
 function renderSnapTabs() {
   const bar = document.getElementById('snap-tabs');
   const snaps = (state.holdingSnapshots || []).slice().sort((a, b) => a.date.localeCompare(b.date));
-  if (!snaps.length) { bar.style.display = 'none'; if (snapView !== 'current') snapView = 'current'; return; }
-  if (snapView !== 'current' && !getSnapshot(snapView)) snapView = 'current';
+  const subs = (state.subPortfolios || []);
+  if (!snaps.length && !subs.length) { bar.style.display = 'none'; if (snapView !== 'current') snapView = 'current'; return; }
+  if (snapView !== 'current' && !snapView.startsWith('sub:') && !getSnapshot(snapView)) snapView = 'current';
+  if (snapView.startsWith('sub:') && !getSubPortfolio(snapView.slice(4))) snapView = 'current';
   bar.style.display = 'flex';
   bar.innerHTML = snaps.map(s =>
     `<button class="snap-tab ${snapView === s.date ? 'active' : ''}" data-snap="${s.date}">快照 ${s.date}</button>`
   ).join('') +
   `<button class="snap-tab ${snapView === 'current' ? 'active' : ''}" data-snap="current">目前持股</button>` +
+  subs.map(p =>
+    `<button class="snap-tab ${snapView === 'sub:' + p.name ? 'active' : ''}" data-snap="sub:${escapeHtml(p.name)}">${escapeHtml(p.name)}</button>`
+  ).join('') +
   (snapView !== 'current' ? `<span class="snap-hint">唯讀檢視 — 編輯請切回「目前持股」</span>` : '');
   bar.querySelectorAll('.snap-tab').forEach(b => {
     b.addEventListener('click', () => { snapView = b.dataset.snap; renderAll(); });
