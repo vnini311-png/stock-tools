@@ -735,6 +735,9 @@ footer {
                 <div class="overview-meta">資料日：<span id="ovDate">—</span> · 點欄位標題可排序 · 點股票代號跳至個股分析</div>
             </div>
             <div class="sort-controls">
+                <input id="ovSearch" type="text" placeholder="🔍 代號或名稱" autocomplete="off"
+                       style="background:#161b22;border:1px solid #2a3140;border-radius:8px;color:inherit;
+                              padding:6px 12px;font-size:13px;width:140px;outline:none;" />
                 <button class="sort-btn active" data-filter="all">全部</button>
                 <button class="sort-btn" data-filter="bullish">🔴 法人偏多</button>
                 <button class="sort-btn" data-filter="bearish">🟢 法人偏空</button>
@@ -1159,6 +1162,7 @@ function trendCategory(tags) {
 let ovSortKey = 'three';
 let ovSortDir = 'desc';
 let ovFilter = 'all';
+let ovSearch = '';
 
 function renderOverview() {
     let latestDate = '';
@@ -1234,9 +1238,13 @@ function renderOverview() {
     `;
 
     let filtered = rows;
-    if (ovFilter === 'bullish') filtered = rows.filter(r => r.cat === 'bullish');
-    else if (ovFilter === 'bearish') filtered = rows.filter(r => r.cat === 'bearish');
-    else if (ovFilter === 'watch') filtered = rows.filter(r => r.cat === 'watch' || r.tags.some(t => t.type === 'warn'));
+    if (ovSearch) {
+        const q = ovSearch.toLowerCase();
+        filtered = filtered.filter(r => r.code.toLowerCase().includes(q) || (r.name || '').toLowerCase().includes(q));
+    }
+    if (ovFilter === 'bullish') filtered = filtered.filter(r => r.cat === 'bullish');
+    else if (ovFilter === 'bearish') filtered = filtered.filter(r => r.cat === 'bearish');
+    else if (ovFilter === 'watch') filtered = filtered.filter(r => r.cat === 'watch' || r.tags.some(t => t.type === 'warn'));
 
     filtered.sort((a, b) => {
         let av = a[ovSortKey];
@@ -1945,6 +1953,14 @@ document.querySelectorAll('#ovTable thead th.sortable').forEach(th => {
         renderOverview();
     });
 });
+const _ovSearchEl = document.getElementById('ovSearch');
+if (_ovSearchEl) {
+    let _t = null;
+    _ovSearchEl.addEventListener('input', (e) => {
+        clearTimeout(_t);
+        _t = setTimeout(() => { ovSearch = e.target.value.trim(); renderOverview(); }, 150);
+    });
+}
 document.querySelectorAll('.sort-btn').forEach(b => {
     b.addEventListener('click', () => {
         document.querySelectorAll('.sort-btn').forEach(x => x.classList.remove('active'));
