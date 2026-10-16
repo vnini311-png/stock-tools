@@ -251,12 +251,23 @@ function buildChart(canvas, s) {
       spanGaps: false
     };
   });
+  canvas.addEventListener('mouseleave', () => {
+    const el = document.getElementById('meta-' + s.id);
+    if (el) el.innerHTML = cardMeta(s, latestM || LATEST_MONTH);
+  });
   return new Chart(canvas, {
     type: 'line',
     data: {labels:['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'], datasets},
     options: {
       responsive: true, maintainAspectRatio: true,
       interaction: {mode:'index', intersect:false},
+      onHover: (evt, actives) => {
+        if (!actives || !actives.length) return;
+        const m = actives[0].index + 1;
+        if (((s.byYear['2026'] || {})[m]) == null) return;
+        const el = document.getElementById('meta-' + s.id);
+        if (el) el.innerHTML = cardMeta(s, m);
+      },
       plugins: {
         legend: {display:false},
         tooltip: {
@@ -273,6 +284,26 @@ function buildChart(canvas, s) {
       }
     }
   });
+}
+
+function yoyAt(s, m) {
+  const cur = (s.byYear['2026'] || {})[m];
+  const prev = (s.byYear['2025'] || {})[m];
+  return (cur != null && prev) ? (cur / prev - 1) * 100 : null;
+}
+function momAt(s, m) {
+  const cur = (s.byYear['2026'] || {})[m];
+  const prev = m > 1 ? (s.byYear['2026'] || {})[m - 1] : (s.byYear['2025'] || {})[12];
+  return (cur != null && prev) ? (cur / prev - 1) * 100 : null;
+}
+function cardMeta(s, m) {
+  const v = (s.byYear['2026'] || {})[m];
+  const b = (val, tag) => val == null ? ''
+    : `<span class="badge ${val >= 0 ? 'up' : 'down'}">${tag} ${val >= 0 ? '+' : ''}${val.toFixed(1)}%</span>`;
+  const isLatest = m === getLatestMonth(s);
+  const mb = `<span class="badge new">${m}月${isLatest ? '已公布' : ''}</span>`;
+  return `<span class="latest">${fmt(v)}</span>
+      <div style="display:flex;gap:4px;align-items:center">${b(yoyAt(s, m), 'YoY')}${b(momAt(s, m), 'MoM')}${mb}</div>`;
 }
 
 function renderCards(list) {
@@ -311,10 +342,7 @@ function renderCards(list) {
           <span class="stock-id">${s.id}</span>
           <span class="stock-name">${s.name}</span>
         </div>
-        <div class="card-meta">
-          <span class="latest">${fmt(latest)}</span>
-          <div style="display:flex;gap:4px;align-items:center">${yoyBadge}${newBadge}</div>
-        </div>
+        <div class="card-meta" id="meta-${s.id}">${cardMeta(s, latestM || LATEST_MONTH)}</div>
       </div>
       <div class="card-body">
         <canvas id="c${s.id}"></canvas>
