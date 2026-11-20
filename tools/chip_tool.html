@@ -679,6 +679,9 @@ footer {
     font-size: 0.78rem;
 }
 
+@media (max-width: 1400px) {
+    .col-4 { grid-column: span 6; }
+}
 @media (max-width: 900px) {
     .col-4, .col-6, .col-8 { grid-column: span 12; }
     .donut-row { grid-template-columns: 1fr; justify-items: center; }
@@ -792,7 +795,7 @@ footer {
         <div class="metrics" id="metrics"></div>
 
         <div class="grid">
-            <div class="panel col-6">
+            <div class="panel col-4">
                 <div class="panel-title"><span class="icon"></span>持股結構分布</div>
                 <div class="panel-subtitle" id="holdingSubtitle">最新一日各類別持股佔比</div>
                 <div class="donut-row">
@@ -808,37 +811,37 @@ footer {
                 </div>
             </div>
 
-            <div class="panel col-6">
+            <div class="panel col-4">
                 <div class="panel-title"><span class="icon" style="background: var(--orange);"></span>三大法人買賣超</div>
                 <div class="panel-subtitle">紅買綠賣 · 單位：張 · X 軸每週第一個交易日</div>
                 <div class="chart-wrap tall"><canvas id="instChart"></canvas></div>
             </div>
 
-            <div class="panel col-6">
+            <div class="panel col-4">
                 <div class="panel-title"><span class="icon" style="background: var(--purple);"></span>外資持股比率走勢</div>
                 <div class="panel-subtitle">外資 + 陸資合計佔發行股數比率（%）· X 軸每週第一個交易日</div>
                 <div class="chart-wrap"><canvas id="foreignChart"></canvas></div>
             </div>
 
-            <div class="panel col-6">
+            <div class="panel col-4">
                 <div class="panel-title"><span class="icon" style="background: var(--orange);"></span>投信持股比率走勢</div>
                 <div class="panel-subtitle">投信持股（baseline + 買賣超滾動）佔發行股數比率（%）· X 軸每週第一個交易日</div>
                 <div class="chart-wrap"><canvas id="trustChart"></canvas></div>
             </div>
 
-            <div class="panel col-6">
+            <div class="panel col-4">
                 <div class="panel-title"><span class="icon" style="background: #26c6da;"></span>自營商持股比率走勢</div>
                 <div class="panel-subtitle">自營商持股（baseline + 買賣超滾動）佔發行股數比率（%）· X 軸每週第一個交易日</div>
                 <div class="chart-wrap"><canvas id="dealerChart"></canvas></div>
             </div>
 
-            <div class="panel col-6">
+            <div class="panel col-4">
                 <div class="panel-title"><span class="icon" style="background: var(--yellow);"></span>融資融券餘額</div>
                 <div class="panel-subtitle">融資=散戶槓桿做多 · 融券=放空力道 · 白虛線=融資使用率(%)</div>
                 <div class="chart-wrap"><canvas id="marginChart"></canvas></div>
             </div>
 
-            <div class="panel col-6">
+            <div class="panel col-4">
                 <div class="panel-title"><span class="icon" style="background: #ff7043;"></span>借券賣出</div>
                 <div class="panel-subtitle">借券賣出=外資/法人主要放空管道 · 柱=當日賣出 · 線=餘額水位</div>
                 <div class="chart-wrap"><canvas id="borrowChart"></canvas></div>
